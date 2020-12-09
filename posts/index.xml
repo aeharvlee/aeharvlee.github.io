@@ -50,26 +50,6 @@ chmod 600 .ssh/authorized_keys
     </item>
     
     <item>
-      <title>Newaly created test posting v2</title>
-      <link>aeharvlee.github.io/posts/2020-12-08-newly-created-test-posting/</link>
-      <pubDate>Tue, 08 Dec 2020 00:00:00 +0000</pubDate>
-      
-      <guid>aeharvlee.github.io/posts/2020-12-08-newly-created-test-posting/</guid>
-      <description>&lt;h1 id=&#34;test-is-most-important-thing&#34;&gt;TEST IS MOST IMPORTANT THING&lt;/h1&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>Newaly created test posting</title>
-      <link>aeharvlee.github.io/posts/2020-12-07-newly-created-test-posting/</link>
-      <pubDate>Mon, 07 Dec 2020 00:00:00 +0000</pubDate>
-      
-      <guid>aeharvlee.github.io/posts/2020-12-07-newly-created-test-posting/</guid>
-      <description>&lt;h1 id=&#34;test-is-most-important-thing&#34;&gt;TEST IS MOST IMPORTANT THING&lt;/h1&gt;
-</description>
-    </item>
-    
-    <item>
       <title>Reverse DNS Lookup Concurrently with Go</title>
       <link>aeharvlee.github.io/posts/2020-08-20-even-faster-reverse-dns-lookup-using-goroutines/</link>
       <pubDate>Thu, 20 Aug 2020 00:00:00 +0000</pubDate>
