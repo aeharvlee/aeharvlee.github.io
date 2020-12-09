@@ -1,0 +1,1129 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Posts on Road to Architect</title>
+    <link>aeharvlee.github.io/posts/</link>
+    <description>Road to Architect (Posts)</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>ko-kr</language>
+    <lastBuildDate>Mon, 07 Dec 2020 00:00:00 +0000</lastBuildDate>
+    
+    <atom:link href="aeharvlee.github.io/posts/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Pubkey Authentication not working</title>
+      <link>aeharvlee.github.io/posts/2020-12-09-pubkey-authentication/</link>
+      <pubDate>Mon, 07 Dec 2020 00:00:00 +0000</pubDate>
+      
+      <guid>aeharvlee.github.io/posts/2020-12-09-pubkey-authentication/</guid>
+      <description>&lt;blockquote&gt;
+&lt;p&gt;리모트 서버와 패스워드 입력 없이 비대칭 키로 원격 접속을 하고 싶은데, 키를 이용한 접속이 되지 않고, 프롬프트에서 패스워드를 요구하는 경우 어떻게 대처하면 좋을지를 알아봅시다.&lt;/p&gt;
+&lt;p&gt;저자의 로컬 클라이언트 운영체제는 MacOS Bigsur, 리모트 서버의 경우 CentOS 7으로 되어 있다는 것을 먼저 알려드립니다.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;퍼블릭 키를 원격 서버에 잘 두었고, 로컬에 짝이 맞는 개인 키도 있는 상태에서 &lt;strong&gt;키를 지정하여 통신하려 했음에도 실패한 경험&lt;/strong&gt;이 있으시다면 다음과 같은 것들을 점검해보시기 바랍니다.&lt;/p&gt;
+&lt;h2 id=&#34;1-check-remote-server&#34;&gt;1. Check remote server&lt;/h2&gt;
+&lt;p&gt;원격 서버의 &lt;code&gt;/etc/ssh/ssh/sshd_config&lt;/code&gt; 파일에 &lt;code&gt;PubkeyAuthentication yes&lt;/code&gt; 항목이 있는지 확인합니다. sshd 설정에서 아예 이를 막아둔 경우 키를 활용한 접속이 불가능합니다.
+만약 설정을 변경해주었으면 &lt;code&gt;service sshd restart&lt;/code&gt; 해주시기 바랍니다. 변경된 설정을 로드해야하니까요. ✌️&lt;/p&gt;
+&lt;h3 id=&#34;11-lets-add-pubkey&#34;&gt;1.1 Let&amp;rsquo;s Add Pubkey&lt;/h3&gt;
+&lt;p&gt;키로 접속하려는 리모트 서버의 &lt;code&gt;.ssh/authorized_keys&lt;/code&gt; 파일을 직접 확인하셔서 내가 갖고 있는 개인키와 매칭되는 공개키가 제대로 등록되어 있는지 확인해볼 수도 있겠지만, 확실하게 하기 위해 키를 직접 추가해주도록 합시다. 수작업 보다는 그래도 커맨드로 한 번 더 해주는 것이 좋습니다. ⌨️&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ssh-copy-id -i ~/.ssh/id_rsa_macbook_pro15.pub user@123.456.789.123 -p 28888&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;로컬에서 위와 같은 커맨드를 입력하여 리모트 서버에 키를 추가해주도록 합시다.. 위 커맨드의 가정은 아래와 같습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;접속하려는 리모트 server의 아이피 주소가 123.456.789.123, ssh 접속할 때 사용하는 포트는 28888&lt;/li&gt;
+&lt;li&gt;로컬의 private key 파일은 현재 &lt;code&gt;/Users/aeharvlee/local/.ssh/id_rsa_macbook_pro15&lt;/code&gt; 로 되어 있으며 리모트 서버의 user 계정으로 접근시도&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;2-check-local-and-remote-server-both&#34;&gt;2. Check local and remote server both&lt;/h2&gt;
+&lt;p&gt;1번에서 매칭되는 공개 키를 잘 추가해주셨다면, 이제 디버깅할 시간입니다. 접속을 시도하는 로컬의 로그와 동시에 타겟 서버인 리모트 서버의 로그를 살펴보면 됩니다.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;color:#75715e&#34;&gt;# 클라이언트 측에서 서버에 연결할 때의 과정을 상세히 출력해보도록 합니다.&lt;/span&gt;
+$ ssh -i ~/.ssh/id_rsa_macbook_pro15 user@123.456.789.123 -p &lt;span style=&#34;color:#ae81ff&#34;&gt;7788&lt;/span&gt; -v
+
+&lt;span style=&#34;color:#75715e&#34;&gt;# 리모트 서버측의 로그를 확인하도록 합니다.&lt;/span&gt;
+sudo tail -f /var/log/secure
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;먼저 클라이언트 측 ssh 접속 시도 로그를 살펴보시면, 중간에 키로 접속을 시도하는 구간이 잘 되었는지, 아니면 해당 구간이 제대로 통과되지 않아 결국 패스워드 인증으로 넘어갔는지를 살펴볼 수 있습니다.&lt;/p&gt;
+&lt;p&gt;만약 패스워드 인증으로 넘어갔다면 그에 대한 이유가 바로 리모트 서버의 로그에 남습니다. 저의 경우 리모트 서버의 로그를 확인해보니, 접속하려는 계정의 디렉토리 권한이 맞지 않다는 이유로 접속이 안된다는 것을 확인했습니다. 따라서 그에 맞게 아래와 같이 조치를 치해주었고 그 결과 이제는 정상 접속이 되고 있습니다. ✔️&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;chmod g-w /home/user/
+chmod 700 .ssh/
+chmod 600 .ssh/authorized_keys
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;크게 어렵진 않지만 한 번 발을 잘못 디디면 시간을 많이 허비할 수 있는 문제라서, 저처럼 헤매시는 분들이 많이 없길 바라는 마음에서 글을 작성했습니다. 도움이 되길 바랍니다. 🔆&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Reverse DNS Lookup Concurrently with Go</title>
+      <link>aeharvlee.github.io/posts/2020-08-20-even-faster-reverse-dns-lookup-using-goroutines/</link>
+      <pubDate>Thu, 20 Aug 2020 00:00:00 +0000</pubDate>
+      
+      <guid>aeharvlee.github.io/posts/2020-08-20-even-faster-reverse-dns-lookup-using-goroutines/</guid>
+      <description>&lt;p&gt;Go Routine을 활용하여 대량의 아이피에 대해 Reverse DNS Lookup을 효과적으로 처리한 사례를 공유드립니다.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-08-20-even-faster-reverse-dns-lookup-using-goroutines/0.png&#34; alt=&#34;gopher&#34;&gt;&lt;/p&gt;
+&lt;p&gt;Image Source: &lt;a href=&#34;https://en.wikipedia.org/wiki/Gopher&#34;&gt;https://en.wikipedia.org/wiki/Gopher&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id=&#34;verify-good-bot&#34;&gt;Verify Good Bot&lt;/h2&gt;
+&lt;p&gt;자세한 요구사항을 말씀드리긴 어렵지만, 보유하고 있는 &lt;strong&gt;대량의 아이피 주소에 대해 각 아이피가 Good Bot&lt;/strong&gt;(구글 봇, 애플 봇, 마이크로소프트 봇 등)&lt;strong&gt;인지를 확인하는 작업이 필요했습니다.&lt;/strong&gt; 그것도 빠르게..! 🏇 처리해야하는 상황입니다.&lt;/p&gt;
+&lt;p&gt;Good Bot인지를 검증하는 작업은 생각보다 심플한데요, 해당 아이피 주소에 대해 &lt;strong&gt;reverse DNS lookup&lt;/strong&gt;을 해주면 됩니다. 일반적으로 잘 알려져 있는 봇들은 &lt;!-- raw HTML omitted --&gt;DNS에 자신의 정보를 등록해두기 때문&lt;!-- raw HTML omitted --&gt;입니다. 구글에서 이에 대해 작성한 &lt;a href=&#34;https://support.google.com/webmasters/answer/80553?hl=en&#34;&gt;Verifying Googlebot&lt;/a&gt; 가이드가 있어요! 😉&lt;/p&gt;
+&lt;p&gt;오케이! 그렇다면 해야하는 작업은 심플하네요. &lt;strong&gt;각 아이피에 대해 Reverse DNS Lookup&lt;/strong&gt;을 하면 됩니다. ✅ Go언어로 해당 작업내용을 어떻게 작성했는지 지금부터 같이 보시겠습니다.&lt;/p&gt;
+&lt;h2 id=&#34;linear-reverse-dns-lookup--&#34;&gt;Linear Reverse DNS Lookup  😫&lt;/h2&gt;
+&lt;p&gt;가장 먼저 해본 작업은 선형 룩업입니다. For문으로 아이피 리스트에 대해 Reverse DNS Lookup을 처리하는 것이죠. 이렇게 하면 과연 우리가 원하는 시간 내에 원하는 작업을 할 수 있을까요?&lt;/p&gt;
+&lt;p&gt;이렇게 선형으로 처리하면 처리는 되지만, 원하는 시간 내에 빠르게 처리할 수 없었습니다. 테스트를 해보니, 고작 500개의 룩업을 처리하는데 약 33초가 걸립니다. 미리 테스트 결과를 보여드리면 아래와 같습니다. 첫번째로 테스트 된 함수가 &lt;strong&gt;TestLinearReverseDNSLookup&lt;/strong&gt;이며, 그 다음으로는 고루틴을 활용하여 처리한 &lt;strong&gt;TestReverseDNSLookup&lt;/strong&gt;가 테스트 되었습니다.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;=== RUN   TestLinearReverseDNSLookup
+    TestLinearReverseDNSLookup: bot_specifier_test.go:123: Start Look up 500 addresses.
+    TestLinearReverseDNSLookup: bot_specifier_test.go:134: Looked up 61 addresses.
+--- PASS: TestLinearReverseDNSLookup (32.95s)
+=== RUN   TestReverseDNSLookup
+    TestReverseDNSLookup: bot_specifier_test.go:147: Start Look up 1000 addresses.
+    TestReverseDNSLookup: bot_specifier_test.go:149: Looked up 561 addresses.
+--- PASS: TestReverseDNSLookup (6.52s)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;사용한 방법은, 아래와 같이 Google DNS 서버를 통해 룩업하는 Resolver를 할당하여 선형 룩업을 진행하였습니다. (단순 반복문으로 처리한 거니까 자세한 코드는 생략합니다. 😇)&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-go&#34; data-lang=&#34;go&#34;&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;Resolver&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;:=&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;&amp;amp;&lt;/span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;net&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;Resolver&lt;/span&gt;{
+	&lt;span style=&#34;color:#a6e22e&#34;&gt;PreferGo&lt;/span&gt;: &lt;span style=&#34;color:#66d9ef&#34;&gt;true&lt;/span&gt;,
+	&lt;span style=&#34;color:#a6e22e&#34;&gt;Dial&lt;/span&gt;: &lt;span style=&#34;color:#66d9ef&#34;&gt;func&lt;/span&gt;(&lt;span style=&#34;color:#a6e22e&#34;&gt;ctx&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;context&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;Context&lt;/span&gt;, &lt;span style=&#34;color:#a6e22e&#34;&gt;network&lt;/span&gt;, &lt;span style=&#34;color:#a6e22e&#34;&gt;address&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;string&lt;/span&gt;) (&lt;span style=&#34;color:#a6e22e&#34;&gt;net&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;Conn&lt;/span&gt;, &lt;span style=&#34;color:#66d9ef&#34;&gt;error&lt;/span&gt;) {
+		&lt;span style=&#34;color:#a6e22e&#34;&gt;d&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;:=&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;net&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;Dialer&lt;/span&gt;{
+			&lt;span style=&#34;color:#a6e22e&#34;&gt;Timeout&lt;/span&gt;: &lt;span style=&#34;color:#a6e22e&#34;&gt;time&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;Second&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;*&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;time&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;Duration&lt;/span&gt;(&lt;span style=&#34;color:#ae81ff&#34;&gt;3&lt;/span&gt;),
+		}
+		&lt;span style=&#34;color:#66d9ef&#34;&gt;return&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;d&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;DialContext&lt;/span&gt;(&lt;span style=&#34;color:#a6e22e&#34;&gt;ctx&lt;/span&gt;, &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;udp&amp;#34;&lt;/span&gt;, &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;8.8.8.8:53&amp;#34;&lt;/span&gt;)
+	},
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;reverse-dns-lookup-with-goroutine-&#34;&gt;Reverse DNS Lookup with Goroutine 😸&lt;/h2&gt;
+&lt;p&gt;오늘 포스팅의 주인공이라고 할 수 있는 고루틴이 등장하였습니다. 아래와 같이 Reverse DNS Lookup을 고루틴으로 처리하였고 성능은 선형 룩업을 했을 때보다 최소 10배 이상은 빠른 것 같습니다. (하드웨어 사양에 따라 성능이 달라지겠지만요.)&lt;/p&gt;
+&lt;p&gt;{% gist 4da4f1859c82e4632e5528d011a557bb %}&lt;/p&gt;
+&lt;p&gt;위 코드에서 중점적으로 봐주셔야 할 부분은 &lt;code&gt;bs.Resolver.LookupAddr(ctx, ipv4)&lt;/code&gt; 를 감싸고 있는 go func 입니다. 각 고루틴들이 룩업한 결과를 리스트에 추가하는 형태로 되어 있으며, 각각의 고루틴들이 임계영역을 서로 침범하지 않게끔 Mutex를 사용해서 처리해주는 것을 보실 수 있습니다.&lt;/p&gt;
+&lt;p&gt;위 코드를 바탕으로 10만개 아이피에 대해 룩업을 실행한 결과는 아래와 같습니다. 처리한 시간이 1분이 채 안되는 걸 보실 수 있습니다.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;=== RUN   TestSpecifyGoodBots
+    TestSpecifyGoodBots: bot_specifier_test.go:161: Start Look up 100000 addresses.
+    TestSpecifyGoodBots: bot_specifier_test.go:163: Looked up 17690 addresses.
+    TestSpecifyGoodBots: bot_specifier_test.go:165: There are 0 Good Bots in bs.DnsBook.
+--- PASS: TestSpecifyGoodBots (54.92s)
+PASS
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;more&#34;&gt;More?&lt;/h2&gt;
+&lt;p&gt;10만개 아이피에 대해 고루틴으로 Reverse DNS Lookup을 처리할 때의 고루틴 개수 변화 추이, 해당 프로그램에서 사용하는 CPU, Memory 변화량 등에 대해 모니터링을 해보고 싶습니다.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Go Concurrecny Patterns in Go Chap4 Queueing</title>
+      <link>aeharvlee.github.io/posts/2020-08-11-go-concurrency-pattern/</link>
+      <pubDate>Tue, 11 Aug 2020 00:00:00 +0000</pubDate>
+      
+      <guid>aeharvlee.github.io/posts/2020-08-11-go-concurrency-pattern/</guid>
+      <description>&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-08-11-go-concurrency-pattern/0.png&#34; alt=&#34;thumnail&#34;&gt;&lt;/p&gt;
+&lt;p&gt;golang 온라인 스터디 때 제가 준비한 파트에 대한 자료를 공유드립니다.&lt;/p&gt;
+&lt;h2 id=&#34;queuing&#34;&gt;Queuing&lt;/h2&gt;
+&lt;p&gt;Sometimes it&amp;rsquo;s useful to begin &lt;!-- raw HTML omitted --&gt;accepting work for your pipeline even though the pipeline is not yet ready for more.&lt;!-- raw HTML omitted --&gt; This process is called &lt;em&gt;&lt;strong&gt;queuing&lt;/strong&gt;&lt;/em&gt;.&lt;/p&gt;
+&lt;p&gt;All this means is that once your stage has completed some work, it stores it in a temporary location in memory so that other stages can retrive it later, and your stage doesn&amp;rsquo;t need to hold a reference to it.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-08-11-go-concurrency-pattern/1.png&#34; alt=&#34;queue&#34;&gt;&lt;/p&gt;
+&lt;p&gt;Queuing will almost never speed up the total runtime of your program; it will only allow the program to behave differently.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-08-11-go-concurrency-pattern/2.png&#34; alt=&#34;queue-table1&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-08-11-go-concurrency-pattern/3.png&#34; alt=&#34;queue-table2&#34;&gt;&lt;/p&gt;
+&lt;p&gt;The entire pipeline still took 13 seconds! But look at the short stage&amp;rsquo;s runtime. It&amp;rsquo;s complete after onlly 4 seconds as opposed to the 9 seconds it took previously. We&amp;rsquo;ve cut this stage&amp;rsquo;s runtime by two thirds! But if the entire pipeline still takes 13 seconds to execute, how does this help us?&lt;/p&gt;
+&lt;p&gt;Ans: The utility of introducing a queue isn&amp;rsquo;t that the runtime of one of stages has been reduced, but rather that &lt;strong&gt;the time it&amp;rsquo;s in a &lt;em&gt;blocking state&lt;/em&gt; is reduced.&lt;/strong&gt; This allows the stage to continue doing its job.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;In this way, the true utility of queues is to decouple stages so that the runtime of one stage has no impact on the runtime of another.&lt;/strong&gt; Decoupling stages in this manner then cascades to alter the runtime behavior of the system as a whole, which can be either good or bad depending on your system.&lt;/p&gt;
+&lt;p&gt;Let&amp;rsquo;s begin by analyzing situations in which queuing. Where should be queues be placed? What should the buffer size be?&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;If batching requests in a stage saves time.&lt;/li&gt;
+&lt;li&gt;If delays in a stage produce a feedback loop into the system&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Buffers input in something faster (e.g., memory) than it is designed to send to (e.g., disk).&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;buffer_test.go&lt;/code&gt;&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;Finished after work 1 times
+goos: darwin
+goarch: amd64
+BenchmarkUnbufferedWrite-8      Finished after work 100 times
+Finished after work 10000 times
+Finished after work 240836 times
+  240836              4335 ns/op
+Finished after work 1 times
+BenchmarkBufferedWrite-8        Finished after work 100 times
+Finished after work 10000 times
+Finished after work 1000000 times
+ 1000000              1002 ns/op
+PASS
+ok      command-line-arguments  3.088s
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Buffered write is faster than the unbuffered write. This is because in bufio.Writer, the writes are &lt;em&gt;queued&lt;/em&gt; internally into a buffer until a sufficient chunk has been accumulated, and then the chunk is written out. The process is often called &lt;em&gt;&lt;strong&gt;chunking&lt;/strong&gt;&lt;/em&gt;, for obvious reasons.&lt;/p&gt;
+&lt;p&gt;Chunking is faster because bytes.Buffer must grow its allocated memory to accommodate the bytes it must store. &lt;strong&gt;Growing memory is expensive;&lt;/strong&gt; therefore, the less times we have to grow, the more efficient our system as a whole will perform. Thus, queuing has increased the performance of your system as a whole.&lt;/p&gt;
+&lt;p&gt;&amp;ldquo;&lt;strong&gt;Each write is ultimately a syscall and if doing frequently can put burden on the CPU.&lt;/strong&gt; Devices like disks work better dealing with block-aligned data. To avoid the overhead of many small write operations Golang is shipped with bufio.Writer. Data, instead of going straight to destination (implementing io.Writer interface) are first accumulated inside the buffer and send out when buffers is full: producer &amp;ndash;&amp;gt; buffer &amp;ndash;&amp;gt; io.Writer&amp;rdquo;&lt;/p&gt;
+&lt;p&gt;Queuing should be implemented either:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;At the entrance to your pipeline.&lt;/li&gt;
+&lt;li&gt;In stages where batching will lead to higher efficiency.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;L = the average number of units in the system.&lt;/p&gt;
+&lt;p&gt;Labmda = the average arrival rate of units.&lt;/p&gt;
+&lt;p&gt;W = the average time a unit spends in the system.&lt;/p&gt;
+&lt;p&gt;(I NEED A HELP)&lt;/p&gt;
+&lt;p&gt;파이프라인에서 안정적인 시스템은 ingress와 egress의 비율이 동일하다. ingress의 비율이 egress의 비율을 넘어서면 시스템은 불안정한 것이고 death-sprial에 진입한다. ingress가 egress보다 작아도 여전히 불안정한 시스템이다. 다만 위와 다른 건, 리소스를 완전히 사용하지 않다고 있는 것뿐이다.&lt;/p&gt;
+&lt;p&gt;위 수식의 결론: 전체 파이프라인의 속도는 가장 느린 단계에 의해 결정된다.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;References:&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://medium.com/golangspec/introduction-to-bufio-package-in-golang-ad7d1877f762&#34;&gt;introduction-to-bufio-package-in-golang&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id=&#34;the-context-package&#34;&gt;The context Package&lt;/h2&gt;
+&lt;p&gt;We&amp;rsquo;ve looked at the idiom of creating a done channel, which flows through your program and cancels all blocking concurrent operations. This works well, but it&amp;rsquo;s also somewhat limited.&lt;/p&gt;
+&lt;p&gt;It would be useful if we could communicate extra information alongside the simple notification to cancel: &lt;strong&gt;why the cancellation was occuring&lt;/strong&gt;, or &lt;strong&gt;whether or not our function has a deadline by which it needs to complete.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;The context package serves two primary purposes:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;To provide an API for canceling branches of your call-graph.&lt;/li&gt;
+&lt;li&gt;To provide a data-bag for transporting request-scoped data through your call-graph.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;And the context package helps manage belows also:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;A gouroutine&amp;rsquo;s parent may want to cancel it.&lt;/li&gt;
+&lt;li&gt;A goroutine may want to cancel its children.&lt;/li&gt;
+&lt;li&gt;Any blocking operations within a goroutine need to be preemptable so that it may be canceled.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;The Context type will be the first argument to your function.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;Instances of context.Context may look equivalent from the outside ,but internally they may change at every stack-frame. For this reason, it&amp;rsquo;s important to always pass instances of Context into your functions. This way functions have the Context intended for it, and not the Context intended for a stack-frame N levels up the stack.&lt;/p&gt;
+&lt;p&gt;Let&amp;rsquo;s look at an example that uses the done channel patter, and see what benefits we might gain from switching to use of the context package.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-08-11-go-concurrency-pattern/4.png&#34; alt=&#34;context-diagram1&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;01_done_channel_pattern&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;We&amp;rsquo;ve set up the standard preemption method by creating a done channel and passing it down through our call-graph. If we close the done cahnnel at any point in main, both branches will be canceled.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;We wouldn&amp;rsquo;t have the extra information about deadlines and errors a Context gives us.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;&lt;code&gt;02_context_greeting&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;1: Here &lt;code&gt;main&lt;/code&gt; creates a new Context with &lt;code&gt;context.Background()&lt;/code&gt; and wraps it with &lt;code&gt;context.WithCancel&lt;/code&gt; to allow for cancellation.&lt;/p&gt;
+&lt;p&gt;2: On this line, &lt;code&gt;main&lt;/code&gt; will cancel the Context if there is an error returned from &lt;code&gt;printGreeting&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;3: Here genGreeting wraps its Context with &lt;code&gt;context.WithTimeout&lt;/code&gt;. This will automatically cancel the returned Context after 1 second, thereby canceling any children it passes the Context into, namely &lt;code&gt;locale&lt;/code&gt;.&lt;/p&gt;
+&lt;ol start=&#34;4&#34;&gt;
+&lt;li&gt;This line returns the reason why the Context was canceled. This error will bubble all the way up to &lt;code&gt;main&lt;/code&gt;, which will cause the canllation at 2.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-08-11-go-concurrency-pattern/5.png&#34; alt=&#34;context-diagram2&#34;&gt;&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;cannot print greeting: context deadline exceeded
+cannot print farewell: context canceled
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;locale이 실행하는 데 최소 1분이 걸리기 때문에, genGreeting의 호출은 항상 제한 시간이 초과될 것이고, 이것은 &lt;code&gt;main&lt;/code&gt;이 항상 printFarewell 아래의 호출 그래프를 취소한다는 것을 의미한다.&lt;/p&gt;
+&lt;p&gt;이 프로그램을 더 개선할 수도 있다. locale이 실행되는 데 약 1분이 걸린다는 점을 알고 있으므로 locale 내부에서 마감 시한이 주어졌는지를 확인할 수 있고, 마감 시한에 거릴지도 확인할 수 있다.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;03_context_deadline&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;1: Context에 마감 시한이 주어졌는지 확인한다. 마감 시한이 주어졌고, 시스템 클록이 마감 시한을 넘겼다면 context 패키지에 정의된 특별한 에러인 DeadlineExceeded를 리턴한다.&lt;/p&gt;
+&lt;p&gt;&amp;ldquo;하위의 호출 그래프가 얼마나 오래 걸리는지 알고 있어야 한다는 점인데, 이를 어떻게 달성할 수 있을까?&amp;rdquo;&lt;/p&gt;
+&lt;p&gt;요청 범위 데이터를 저장하고 조회할 수 있는 Context용 데이터 저장소를 사용할 수 있다.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;04_context_data&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;Context의 키와 값이 &lt;code&gt;interface{}&lt;/code&gt;로 정의돼 있기 때문에, 값을 검색할 때 Go의 타입 안전성을 잃어버리게 된다.&lt;/p&gt;
+&lt;p&gt;이러한 이유로 Context에서 값을 저장하고 조회할 때는 패키지에 맞춤형 키 타입을 정의하는 것이 좋다.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;05_context_key_type&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;foo type과 bar type은 분명 근본적으로 같은 값임에도 불구하고 따로 구분되는 것을 확인할 수 있다.&lt;/p&gt;
+&lt;p&gt;데이터를 저장하는 데 사용하는 키를 외부로 내보내지 않는 대신 데이터를 검색하는 함수는 사용할 수 있게끔 해야한다.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;06_context_retrieval&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;타입에 안전한 방식으로 Context에서 값을 조회할 수 있는 방법을 확보했다. 그러나 이 기법의 문제는, Context에 키를 저장하는 데 사용되는 타입이 비공개이기 때문에 다른 패키지에서 해당 데이터를 조회할 수 있는 방법이 없다는 것이다. 이로 인해 여러 위치에서 가져온 데이터 타입을 중심으로 패키지를 생성하는 아키텍처를 강제할 수밖에 없다.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Angel Hack Seoul 2020 Online Review</title>
+      <link>aeharvlee.github.io/posts/2020-07-22-angelhack-seoul-2020/</link>
+      <pubDate>Wed, 22 Jul 2020 00:00:00 +0000</pubDate>
+      
+      <guid>aeharvlee.github.io/posts/2020-07-22-angelhack-seoul-2020/</guid>
+      <description>&lt;p&gt;온라인으로 개최된 2020 엔젤해커톤 참여 후기 공유드립니다.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-07-22-angelhack-seoul-2020/0.png&#34; alt=&#34;angelhack-seoul-2020-online&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;엔젤-해커톤-리뷰&#34;&gt;엔젤 해커톤 리뷰&lt;/h2&gt;
+&lt;h3 id=&#34;1-제출물&#34;&gt;1. 제출물&lt;/h3&gt;
+&lt;p&gt;저희 Specialty팀이 일주일 동안 정말 고생한 노력의 과실들을 공유드립니다. 😙 보통은 이런 후기 글 마지막에 나오는 게 일반적이지만, 이 글을 보시는 분들이 가장 궁금해 할만한 내용이라 생각하여 선공유 드립니다. 😆&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://github.com/orgs/angelhack-seoul-2020-specialty/dashboard&#34;&gt;Github: angelhack-seoul-2020-specialty&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://vimeo.com/439739672&#34;&gt;키노트 영상: 커피박 업사이클링 플랫폼 &lt;/a&gt;&lt;/p&gt;
+&lt;h3 id=&#34;2-간략-소개&#34;&gt;2. 간략 소개&lt;/h3&gt;
+&lt;p&gt;&lt;strong&gt;기간:&lt;/strong&gt; 2020-07-13 월요일부터 2020-07-19 일요일까지&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;주제:&lt;/strong&gt; 참여한 5개의 스폰서(&lt;em&gt;커먼컴퓨터, 패스트캠퍼스, 테이블매니저, 우아한형제들, 코드스테이츠&lt;/em&gt;)가 제안한 도전과제들 중 선택&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;커먼컴퓨터: Ainize(오픈소스 프로젝트 배포 솔루션)를 활용한 코로나 시대를 헤쳐나갈 수 있는 모든 분야의 솔루션&lt;/li&gt;
+&lt;li&gt;패스트캠퍼스: 코로나와 같은 재난 격리, 도서 산간 거주 등 불가피한 원격 상황에서도 학습 의지 부여와 완주율을 높이는 교육/학습 솔루션&lt;/li&gt;
+&lt;li&gt;테이블매니저: 코로나로 인해 어려움을 겪는 소상공인을 돕는 솔루션을 통한 안정적이고 지속 가능한 도시&lt;/li&gt;
+&lt;li&gt;✅ &lt;strong&gt;우아한형제들&lt;/strong&gt;: 지구를 위한 책임가 있는 소비와 생산을 위한 솔루션 (네, 그렇습니다. 저희 팀은 이 주제를 선택했습니다. 😼 )&lt;/li&gt;
+&lt;li&gt;코드스테이츠: 포스트 판데믹 사회에 걸맞는 커리어의 시작(취업)부터 이직, 자기 계발 등 커리어 성장 및 관리를 위한 솔루션&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;3-좋았던-점&#34;&gt;3. 좋았던 점&lt;/h3&gt;
+&lt;p&gt;⭐&lt;strong&gt;멘토님들의 빛나는 피드백&lt;/strong&gt; 🌟 이 가장 좋았습니다. 아래 두 분께 멘토링을 받았었습니다.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;송요창 멘토&lt;/strong&gt;(우아한 형제들의 프론트엔드 프로그래머)님 ⭐ | 별님이라 부르고 싶습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;1차 멘토링 때 도움을 주셨습니다. 👏&lt;/li&gt;
+&lt;li&gt;프론트엔드 개발에 있어 겪고 있는 어려운 문제점들(디자인 패턴, 구조 설계 등)에 도움을 주셨습니다.&lt;/li&gt;
+&lt;li&gt;비즈니스 모델, 즉 &amp;ldquo;이 아이디어가 실효성이 있는가? 지속성이 있는가?&amp;ldquo;에 대해 도움을 주셨습니다. 저희가 첫 기획을 할 때 간과했던 부분이었는데.. (행복회로만 돌리고 있었습니다..) 그 부분을 짚어주시면서 방향을 잡아주셨습니다.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;이동건 멘토&lt;/strong&gt;(나눔엔젤스 이사)님 💲💵 | 황금손이라 부르고 싶습니다.&lt;/p&gt;
+&lt;p&gt;저희가 만들었던 중간 키노트 내용을 보시면서 주옥 같은 피드백들을 주셨는데요, 제 개인적으로는 가장 많은 신선한 충격을 받았습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;2차 멘토링 때 도움을 주셨습니다. 👏👏&lt;/li&gt;
+&lt;li&gt;키노트에 꼭 필요한 장표들에 대해 가이드를 해주셨습니다. 어떤 아이디어든 지속성과 현실성이 중요한데, 저희 키노트에는 비즈니스 모델과 지속성을 설득할 수 있는 자료들이 많이 부족했었고 그 부분을 정확히 짚어주셨습니다.&lt;/li&gt;
+&lt;li&gt;지속가능성과 비즈니스 모델을 보완하기 위해서 어떤 자료들을 함께 준비하고 고민하면 좋을지 주옥같은 조언들을 주셨습니다. 특히 저희 키노트에 수치 관련된 장표가 많이 부족하다고 피드백을 주셨습니다.&lt;/li&gt;
+&lt;li&gt;더불어 설득력 있는 발표자료를 구성하는 방법에 대해 조언을 주셨습니다. 덕분에 자료가 더 완성도 있고 더 맛깔나질 수 있었습니다. 😻&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;3-아쉬웠던-점&#34;&gt;3. 아쉬웠던 점&lt;/h3&gt;
+&lt;p&gt;정말 난이도가 높았던 해커톤이었다고 생각합니다. 지금까지 참여한 해커톤(몇개 안됩니다. 이번까지 해서 4개&amp;hellip;) 중 가장 빡셌습니다&amp;hellip; &amp;ldquo;왜이렇게 힘들었을까?&amp;ldquo;하고 돌이켜보니 &lt;strong&gt;까다로운 제출물 기준&lt;/strong&gt; 이 가장 컸던 것 같습니다. (일주일 기간도 한몫 했지요. 체력이 예전 같지 않은 저&amp;hellip; 😪)&lt;/p&gt;
+&lt;p&gt;제출물은 총 3개가 있었습니다. &lt;strong&gt;소스코드&lt;/strong&gt;, &lt;strong&gt;서비스 구동 데모 영상&lt;/strong&gt;, 그리고 &lt;strong&gt;키노트 발표 영상&lt;/strong&gt; 이 제출물이었는데요,&lt;/p&gt;
+&lt;p&gt;소스코드는 개발 당시 깃헙에서 작업했으므로 링크만 전달 드리면 되는거라 크게 어려움이 없었지만, &lt;strong&gt;서비스 구동 데모 영상&lt;/strong&gt;과 &lt;strong&gt;키노트 발표 영상&lt;/strong&gt; 에 대한 규정이 상당히 까다로웠습니다. 아래는 영상 관련 공지 전문입니다.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;(1) 영상을 편집해 제출하는 경우, 그 영상이 &lt;strong&gt;과도한 편집 기술&lt;/strong&gt;로 &lt;strong&gt;구현이 되지 않은 부분을 가리거나 발표 및 심사 과정을 해치는 수준이 아니어야&lt;/strong&gt; 합니다.
+(2) 피칭 영상의 경우에는 ‘가이드라인’에서 강조하는 주요 내용들이 들어가는 것이 중요함을 다시 한번 안내드립니다.
+(3) 심사는 영상의 완성도나 편집 기술 등에 영향을 받지 않고 &lt;strong&gt;온전히 아이디어와 BM 및 실제 구현으로 심사될 것임을 안내드립니다.&lt;/strong&gt;
+(4) 만약, 영상이 과도하게 편집이 들어가서 주요한 내용을 가리거나 표현하지 못할 경우, 결과물이 인정되지 않을 수 있음을 말씀드립니다.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;위 공지를 요약하자면 다음과 같습니다. &lt;strong&gt;&amp;ldquo;완전 담백하게, 구현된 것만을 보여주세요!&amp;quot;&lt;/strong&gt; 이 규정에 대한 저의 견해는 다음과 같습니다.&lt;/p&gt;
+&lt;p&gt;짧은 기간 동안의 해커톤을 하다보면, 구현 하다보면 계획을 100% 만족시키지 못하고 시간과 자원에 타협을 볼 수밖에 없는 부분이 있습니다.&lt;/p&gt;
+&lt;p&gt;그렇다보니 아이디어를 발표하고 어필할 때, **&amp;ldquo;지금 구현된 것들만&amp;rdquo;**으로 하게되면 오히려 아이디어가 전하고자 하는 메시지가 분명히 전달되지 않을 수 있습니다. 물론 과도한 과장으로 아이디어를 과시하는 것도 좋지 않죠.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;저희 아이디어에서는 서비스(아이디어)를 물류 인프라와 연결 짓는 부분이 있었습니다. 그러나… 이걸 해커톤 기간 내에 구현하는 것은 불가능했고 데모 시연을 할 때, 발표를 할 때 어필을 못한 게 좀 아쉬웠습니다. 물류 인프라까지 연결되면 저희 아이디어가 더 빛날거라 생각했었거든요.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;더 공정한 해커톤을 위한 운영진의 마음도 백번 이해하지만 참여자 입장에서는 살짝 아쉬웠습니다.&lt;/p&gt;
+&lt;h3 id=&#34;4-소감&#34;&gt;4. 소감&lt;/h3&gt;
+&lt;p&gt;&lt;strong&gt;추천하고 싶은 해커톤인가요?&lt;/strong&gt; 라고 누군가 저에게 묻는다면, 저는 YES!! 라고 말하고 싶습니다. 가장 빡센 해커톤이었지만 그만큼 배울점도 많았습니다.&lt;/p&gt;
+&lt;p&gt;또한 온라인에서 개최되었음에도 불구하고 운영진 분들의 피나는 노력으로 혼선 없이 쾌적하게 마무리 될 수 있어 좋은 기억으로 오래 남을 것 같습니다. 🙂&lt;/p&gt;
+&lt;p&gt;내년에 개최된다면 다들 꼭 도전해보시는 걸 추천드립니다! FRESH한 기분과 COMPETITION의 열기를 동시에 맛볼 수 있으니까요.&lt;/p&gt;
+&lt;h4 id=&#34;남기지-않기엔-아쉬운-노력의-흔적들&#34;&gt;남기지 않기엔 아쉬운 노력의 흔적들&lt;/h4&gt;
+&lt;p&gt;마지막으로 우리 팀원들이 했던 노력과 고생의 흔적들을 어필합니다.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;해커톤의 소통을 노션으로 치열하게 했던 흔적&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-07-22-angelhack-seoul-2020/1.png&#34; alt=&#34;angelhack-seoul-2020-online&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Figma로 열심히 제품 UI / UX를 고민하고 디벨롭 했던 흔적&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-07-22-angelhack-seoul-2020/2.png&#34; alt=&#34;angelhack-seoul-2020-online&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-07-22-angelhack-seoul-2020/3.png&#34; alt=&#34;angelhack-seoul-2020-online&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;우아한 형제들 수상샷 - 감사합니다!&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-07-22-angelhack-seoul-2020/4.png&#34; alt=&#34;angelhack-seoul-2020-online&#34;&gt;&lt;/p&gt;
+&lt;p&gt;일주일 동안 꽤 많이 고생을 했는데 운 좋게 결과도 잘 나와주어 참 좋았다. 수상 감사합니다. 😄 우리 스페셜티 팀 여러분 고생 너무 많으셨어요! 함께해서 영광이었습니다.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;THANKS FOR READING.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;#엔젤핵서울 #AngelhackSeoul2020Online #해커톤 #hackathon #개발자 #기획자 #디자이너 #코로나19 #함께이겨내요&lt;/strong&gt;&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Let&#39;s get into CoAP packets</title>
+      <link>aeharvlee.github.io/posts/2020-06-28-get-into-coap-packet/</link>
+      <pubDate>Sun, 28 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>aeharvlee.github.io/posts/2020-06-28-get-into-coap-packet/</guid>
+      <description>&lt;p&gt;프로그램이 CoAP 프로토콜을 정말 지원하는지를 패킷을 통해 직접 확인할 수 있는 방법을 공유드립니다.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-06-28-get-into-coap-packet/0.png&#34; alt=&#34;presentation_title&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;coapthe-constrained-application-protocol&#34;&gt;CoAP(The Constrained Application Protocol)&lt;/h2&gt;
+&lt;p&gt;최근에 기기간 통신에 대해 리서치를 하던 중 &lt;a href=&#34;https://tools.ietf.org/html/rfc7252&#34;&gt;CoAP&lt;/a&gt; 프로토콜에 대해 알게 되었습니다. CoAP는 성능이 매우 작은 기기들 사이에 통신을 주고 받을 때, 아주 적은 페이로드로 빠르고 정확하게 통신을 하기 위한 프로토콜입니다. (자세한 스펙은 해당 링크를 참조해주세요 🙂)&lt;/p&gt;
+&lt;p&gt;해당 프로토콜이 어떻게 동작하는지는 스펙 문서를 통해 확인할 수 있었는데요, 실제로 동작을 시켜보면서 살펴보려면 해당 프로토콜의 구현체가 필요하기 마련입니다. 마침 제가 좋아하는 Golang으로 구현된 라이브러리 &lt;a href=&#34;https://github.com/go-ocf/go-coap&#34;&gt;go-coap&lt;/a&gt;가 있어 직접 실행시켜보며 확인해볼 수 있었습니다.&lt;/p&gt;
+&lt;p&gt;그런데 문득 그런 생각이 들었습니다. &lt;strong&gt;&amp;ldquo;잘 동작하는 것 같긴한데 정말 CoAP 프로토콜을 제대로 구현했을까? 패킷을 통해 확인해보면 확실하게 알 수 있지 않을까?&amp;quot;&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;궁금증이 생겼으니 이 궁금증을 해결해야겠죠? 제가 궁금증을 해결할 때 사용했던 방법론과 그 과정을 공유드립니다. (가끔 이런 걸 해줘야 개발할 때 지루하지 않게 할 수 있는 것 같습니다. 크크&amp;hellip;)&lt;/p&gt;
+&lt;h2 id=&#34;lets-see-coap-packets&#34;&gt;Let&amp;rsquo;s See CoAP Packets&lt;/h2&gt;
+&lt;p&gt;조사하는 방법은 꽤나 심플합니다. 로컬에서 CoAP서버와 클라이언트를 각각 실행시키고, 이 과정에서 발생하는 패킷을 캡처하면 끝입니다.&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;루프백 인터페이스에 대해 패킷캡처를 시작합니다. &lt;code&gt;sudo tcpdump -vi lo0 -w coap_cap.pcap&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;go-coap&lt;/strong&gt; 서버(Port: 5688)를 실행시켜줍니다.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;go-coap&lt;/strong&gt; 클라이언트(Port: 65136)로 서버에 요청을 보내고 서버로부터 응답을 받습니다.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Ctrl + c&lt;/code&gt; 로 실행 중이었던 tcpdump를 인터럽트 해줍니다.&lt;/li&gt;
+&lt;li&gt;추출된 &lt;code&gt;coap_cap.pcap&lt;/code&gt; 파일을 Wireshark로 열어 분석합니다.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id=&#34;use-wireshark-to-see-packets&#34;&gt;Use Wireshark to see packets&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-06-28-get-into-coap-packet/1.png&#34; alt=&#34;coap_packets&#34;&gt;&lt;/p&gt;
+&lt;p&gt;파랗게 칠한 부분이 &lt;strong&gt;go-coap&lt;/strong&gt;서버와 클라이언트가 통신을 주고받은 패킷들입니다. 색칠되어 있는 4개의 패킷의 내용을 요약하자면 아래와 같습니다.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;No. 3:&lt;/strong&gt; Client(&lt;strong&gt;Port: 65136&lt;/strong&gt;) sends GET request to Server(&lt;strong&gt;Port: 5688&lt;/strong&gt;)&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;No. 4:&lt;/strong&gt; Server sends response to Client&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;No. 5:&lt;/strong&gt; Client echo &lt;strong&gt;MessageID&lt;/strong&gt; from Server&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;No. 6:&lt;/strong&gt; Server echo &lt;strong&gt;MessageID&lt;/strong&gt; from Client&lt;/p&gt;
+&lt;p&gt;그럼 지금부터 3 ~ 6에 해당되는 패킷들을 하나 하나 살펴보도록 하겠습니다.&lt;/p&gt;
+&lt;h3 id=&#34;added-at-2020-july-6&#34;&gt;Added at 2020 July 6&lt;/h3&gt;
+&lt;p&gt;CoAP프로토콜의 표준 포트 5683을 사용하면 와이어샤크에서 기본으로 제공해주는 필터를 사용해서 아주 편리하게 분석하실 수 있습니다. 표준 포트가 5688이라는 걸 모른 채 삽질을 했던 거였네요.&lt;/p&gt;
+&lt;p&gt;그럼에도 불구하고 패킷을 하나하나 대조하며 분석하는 건 1번 쯤은 할만한 의미있는 시간이었다고 생각합니다. 하하… 😅&lt;/p&gt;
+&lt;h3 id=&#34;3-client-sends-get-request-to-server&#34;&gt;3: Client sends GET request to Server&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-06-28-get-into-coap-packet/2.png&#34; alt=&#34;msg_format&#34;&gt;&lt;/p&gt;
+&lt;p&gt;프로토콜 스펙에 정의된 대로 구현이 잘 되었다면 위와 같은 메시지 포맷으로 패킷이 구성되어 있어야 합니다. 과연 &lt;strong&gt;go-coap&lt;/strong&gt;는 이를 잘 지키고 있는지 확인해볼까요? 위 그림에 색칠된 부분은 아래 패킷과 매칭되는 구간들을 색칠한 것이니 눈여겨 봐주세요!&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-06-28-get-into-coap-packet/3.png&#34; alt=&#34;client_packet&#34;&gt;&lt;/p&gt;
+&lt;p&gt;가장 먼저 좌측에 초록색 박스안의 &lt;strong&gt;8&lt;/strong&gt;을 보겠습니다. &lt;strong&gt;TKL&lt;/strong&gt;(=ToKen Length)을 뜻하는 것으로 우측에 등장하는 토큰의 길이가 &lt;strong&gt;8바이트&lt;/strong&gt;임을 뜻합니다. 실제로 우측에 나타난 초록색 토큰 구간을 보시면 정확하게 8바이트라는 것을 확인하실 수 있습니다.&lt;/p&gt;
+&lt;p&gt;초록색으로 색칠된 &lt;strong&gt;8&lt;/strong&gt;옆에 &lt;strong&gt;4&lt;/strong&gt;도 프로토콜에 정의된 것처럼 의미를 가지고 있습니다. 16진수 4를 이진수로 표현하면 &lt;strong&gt;0100&lt;/strong&gt; 인데요, 위에 보여드렸던 메시지 스펙에 따르면 2비트씩 각각 &lt;strong&gt;버전&lt;/strong&gt;과(&lt;strong&gt;Ver&lt;/strong&gt;) &lt;strong&gt;타입&lt;/strong&gt;(&lt;strong&gt;T&lt;/strong&gt;)으로 해석을  할 수 있습니다. 즉 앞에 2비트 &lt;strong&gt;01&lt;/strong&gt; 은 버전을, 뒤에 2비트 &lt;strong&gt;00&lt;/strong&gt; 은 타입을 뜻한다고 볼 수 있습니다.&lt;/p&gt;
+&lt;p&gt;2020년 6월 28일 기준으로 &lt;a href=&#34;https://tools.ietf.org/html/rfc7252&#34;&gt;CoAP&lt;/a&gt; 문서를 확인해보시면, 이 프로토콜을 구현할 때는 버전을 1로 명시해야 한다고 되어있고 &lt;strong&gt;go-coap&lt;/strong&gt; 이를 잘 준수하고 있군요.&lt;/p&gt;
+&lt;p&gt;그 다음으로 우측의 빨간 박스에는 &lt;strong&gt;Code&lt;/strong&gt; 가 들어있는데요, 클라이언트가 어떤 리퀘스트를 날렸는지 그 유형을 확인해볼 수 있습니다. 프로토콜에 정의된 대로 16진수 &lt;code&gt;01&lt;/code&gt;이 의미하는 건 &lt;strong&gt;GET&lt;/strong&gt; 요청이므로 클라이언트가 GET 요청을 했다는 걸 확인할 수 있습니다.&lt;/p&gt;
+&lt;p&gt;그 우측에 있는 파란색 박스는 &lt;strong&gt;메시지의 고유 아이디&lt;/strong&gt;를 뜻하는데요, 예상 가능하듯 &lt;strong&gt;UDP&lt;/strong&gt;로 정신없이 오고 가는 메시지들이 중복되지 않게 구분하기 위해 존재합니다.&lt;/p&gt;
+&lt;h3 id=&#34;4-server-sends-response-to-client&#34;&gt;4: Server sends response to Client&lt;/h3&gt;
+&lt;p&gt;3번 내용을 잘 따라오셨다면 이 파트는 편하고 빠르게 보실 수 있을 겁니다. 이번에는 그림을 먼저 한꺼번에 보여드리겠습니다.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-06-28-get-into-coap-packet/4.png&#34; alt=&#34;msg_format&#34;&gt;&lt;/p&gt;
+&lt;p&gt; &lt;img src=&#34;aeharvlee.github.io/images/2020-06-28-get-into-coap-packet/5.png&#34; alt=&#34;server_packet&#34;&gt;&lt;/p&gt;
+&lt;p&gt;메시지 포맷은 동일하므로 3번에서의 내용과 유사합니다. 달라진 점이 있다면 페이로드 노란색 박스가 감싸고 있는 &lt;strong&gt;Payload&lt;/strong&gt; 부분인데요, 서버가 클라이언트에게 &lt;strong&gt;&amp;ldquo;hello world&amp;rdquo;&lt;/strong&gt; 로 응답하는 것을 확인해볼 수 있습니다.&lt;/p&gt;
+&lt;h3 id=&#34;56-client--server-echo-received-messageid&#34;&gt;5~6: Client / Server echo received MessageID&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-06-28-get-into-coap-packet/6.png&#34; alt=&#34;echo_messageid&#34;&gt;&lt;/p&gt;
+&lt;p&gt;프로토콜에 따르면 서버와 클라이언트는 각각 수신한 메시지 ID를 에코해야합니다. 위 사진을 보시면 각각 &lt;strong&gt;MessageID&lt;/strong&gt;를 잘 에코해주고 있음을 확인해볼 수 있습니다.&lt;/p&gt;
+&lt;h2 id=&#34;summary&#34;&gt;Summary&lt;/h2&gt;
+&lt;p&gt;프로토콜을 잘 따르고 있는지를 직접 확인해보는 건 지루할 수 있지만 꽤 중요한 작업이라고 생각합니다. 프로그램이 제대로 동작하는지 디버깅을 하는 것처럼, 네트워크에 오고 가는 패킷들도 직접 살펴보면서 내가 예상한 대로 통신을 주고 받고 있는지, 프로토콜을 잘 준수하고 있는지 확인하는 과정도 필요한 것 같습니다.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>IBM Call for Code 2020 Korea Hackathon Review</title>
+      <link>aeharvlee.github.io/posts/2020-06-13-ibm-callforcode-2020/</link>
+      <pubDate>Sat, 13 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>aeharvlee.github.io/posts/2020-06-13-ibm-callforcode-2020/</guid>
+      <description>&lt;p&gt;IBM Call for Code Korea 2020 후기 공유드립니다. (Top 3에 선정되었습니다. 🎉 Thanks IBM! )&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-06-13-ibm-callforcode-2020/0.png&#34; alt=&#34;ibm_call_for_code_2020&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;ibm-call-for-code-korea-2020&#34;&gt;IBM Call for Code Korea 2020&lt;/h2&gt;
+&lt;p&gt;콜포코드 2020 해커톤은 **&amp;ldquo;코로나와 기후변화 문제를 IT를 활용하여 효과적으로 해결할 수 있을지, 할 수 있다면 어떻게 할 수 있을지&amp;rdquo;**에 대한 아이디어를 공유하고 실제 프로토타입까지 개발해서 서로 발표하고 공유하는 자리였습니다.&lt;/p&gt;
+&lt;p&gt;총 50개 팀이 참여했으며 온라인으로 진행하였습니다. 즉 팀마다 알아서 장소를 구하고 해당 장소에서 같이 2일 동안 해커톤을 진행하는 형식이었는데요, 행사 공식 일정(주최 측의 안내사항 공지, 팀별 발표, 멘토 피드백 등)은 모두 &lt;strong&gt;Cisco Webex Meetings&lt;/strong&gt;를 사용하여 진행하였습니다. (Cisco Webex 정말 좋던데요..? 역시 시스코&amp;hellip;  👍 )&lt;/p&gt;
+&lt;p&gt;&amp;ldquo;해커톤은 역시 먹커톤이지!&amp;ldquo;라는 말이 있습니다. 해커톤엔 항상 먹을 것이 풍부하기 때문이죠 흐흐&amp;hellip; 😋 이번에는 온라인으로 진행이 되었기 때문에 IBM에서는 각 팀에게 피자를 보내주었습니다.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-06-13-ibm-callforcode-2020/1.png&#34; alt=&#34;pizza_from_ibm&#34;&gt;&lt;/p&gt;
+&lt;p&gt;퀄리티도 훌륭하고 샐러드, 파스타, 치킨 너겟 등의 사이드 메뉴도 풍족하게 보내주셔서 매우 만족스러운 먹커톤이었습니다. 🍕 🥗 🍝&lt;/p&gt;
+&lt;h2 id=&#34;carbon-tax탄소세&#34;&gt;Carbon TAX(탄소세)&lt;/h2&gt;
+&lt;p&gt;저희 팀 이타카(&amp;ldquo;Ithaca&amp;rdquo;)에서 도전했던 문제는 &amp;ldquo;기후변화&amp;quot;였고 이를 효과적으로 해결하기 위해 저희 팀은 **탄소세(Carbon TAX)**라는 아이디어를 제시했습니다.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;탄소세&lt;/strong&gt;는 &amp;ldquo;탄소를 사용한 만큼 부과하는 세금&amp;quot;으로 납세 대상을 개인으로까지 확대하는 개념입니다. 보통은 나라와 기업들에 대해서만 탄소 배출권 등을 사용해서 탄소 사용 관련 규제를 하곤 했는데요, 그럼에도 불구하고 지속적으로 증가하는 이산화탄소 배출량과 심각해지는 지구 온난화 문제를 해결하려면 &lt;strong&gt;이제는 개인들도 함께 의식적으로 노력해야 되는 때&lt;/strong&gt;라고 저희는 판단했습니다.&lt;/p&gt;
+&lt;p&gt;그러나 너무 급진적인 아이디어는 많은 반발을 가져올 마련&amp;hellip; 저희의 역할은 이 반발을 최소화하는 것이라 생각하고 &lt;strong&gt;개인, 기업, 정부, 환경단체가 편리하고 거부감 없이 탄소세를 접할 수 있는 플랫폼을 개발&lt;/strong&gt;하였습니다.&lt;/p&gt;
+&lt;p&gt;아래는 저희가 개발하는 솔루션을 사용했을 때 어떤 효용이 있는지를 보여주는 슬라이드입니다. 탄소세가 정착되고 저희 솔루션이 사용된다면 아래와 같은 시나리오로 흘러갈 것이라 예상해보았습니다.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-06-13-ibm-callforcode-2020/2.png&#34; alt=&#34;scenario&#34;&gt;&lt;/p&gt;
+&lt;p&gt;각 주체에게 저희 솔루션이 어떻게 도움을 줄 수 있는지에 대해 지금부터 간략히 공유드리겠습니다.&lt;/p&gt;
+&lt;h3 id=&#34;1-carbon-kim-탄소봇-김탄소&#34;&gt;1. Carbon Kim (탄소봇 김탄소!)&lt;/h3&gt;
+&lt;blockquote&gt;
+&lt;p&gt;가정, 개인이 사용하게 될 챗봇 인터페이스&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-06-13-ibm-callforcode-2020/3-1.png&#34; alt=&#34;co2_bot_1&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;탄소봇 김탄소&lt;/strong&gt;는 개인과 가정에서 사용한 탄소 배출량을 친절하게 알려줍니다. 사진에는 나와 있지 않지만, 월별 사용량 히스토리 등도 조회할 수 있고 더불어 그에 따라 측정된 탄소세도 친절하게 알려줍니다.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-06-13-ibm-callforcode-2020/3-2.png&#34; alt=&#34;co2_bot_2&#34;&gt;&lt;/p&gt;
+&lt;p&gt;탄소세를 예측 가능하고 관리 가능하게 만들어주는 것이 저희 솔루션이 제공하고자 하는 핵심 가치 중 하나입니다.&lt;/p&gt;
+&lt;h3 id=&#34;2-iot--ai를-이용한-탄소세-블록체인-웹-플랫폼&#34;&gt;2. IoT / AI를 이용한 탄소세 블록체인 웹 플랫폼&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-06-13-ibm-callforcode-2020/4.png&#34; alt=&#34;blockchain_web_platform&#34;&gt;&lt;/p&gt;
+&lt;p&gt;기업, 정부, 환경단체를 위해 개발된 웹 플랫폼입니다. 아래 항목들에서 각각 어떻게 웹 플랫폼을 활용하는지, 활용해서 얻는 이점은 무엇인지 등을 확인해보실 수 있습니다. 🙂&lt;/p&gt;
+&lt;h4 id=&#34;21-기업에서의-탄소-배출량-모니터링-통제&#34;&gt;2.1 기업에서의 탄소 배출량 모니터링, 통제&lt;/h4&gt;
+&lt;blockquote&gt;
+&lt;p&gt;기업은 자사의 탄소 배출량을 모니터링하여 공장 등 생산 설비 운영에 대한 비용 예상, 관리 등을 할 수 있습니다.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-06-13-ibm-callforcode-2020/5.png&#34; alt=&#34;web_platform_for_company&#34;&gt;&lt;/p&gt;
+&lt;h4 id=&#34;22-탄소세를-모니터링-부과-그리고-패널티를-부여할-수-있는-정부&#34;&gt;2.2 탄소세를 모니터링, 부과 그리고 패널티를 부여할 수 있는 정부&lt;/h4&gt;
+&lt;blockquote&gt;
+&lt;p&gt;약속한 탄소 배출량을 초과하여 배출한 기업에게는 패널티를 부여하는 등 정부가 자체적으로 탄소세를 효율적으로 관리할 수 있습니다.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-06-13-ibm-callforcode-2020/6-1.png&#34; alt=&#34;web_platform_for_government_1&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-06-13-ibm-callforcode-2020/6-2.png&#34; alt=&#34;web_platform_for_government_2&#34;&gt;&lt;/p&gt;
+&lt;h4 id=&#34;23-기업과-정부가-탄소세-관리를-잘-하고-있는지-등을-감시하는-ngo&#34;&gt;2.3 기업과 정부가 탄소세 관리를 잘 하고 있는지 등을 감시하는 NGO&lt;/h4&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-06-13-ibm-callforcode-2020/7.png&#34; alt=&#34;web_platform_for_ngo&#34;&gt;&lt;/p&gt;
+&lt;h4 id=&#34;24-전세계의-탄소-배출량-동향을-살펴볼-수-있는-글로벌-맵&#34;&gt;2.4 전세계의 탄소 배출량 동향을 살펴볼 수 있는 글로벌 맵&lt;/h4&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-06-13-ibm-callforcode-2020/8.png&#34; alt=&#34;web_platform_global_co2_map&#34;&gt;&lt;/p&gt;
+&lt;h3 id=&#34;3-architecture&#34;&gt;3. Architecture&lt;/h3&gt;
+&lt;p&gt;저희가 설계하고 개발한 아키텍처입니다. 씁쓸한(?) 비하인드 스토리가 있었는데 그 내용도 공유드릴게요.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-06-13-ibm-callforcode-2020/9.png&#34; alt=&#34;architecture&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;아키텍처&lt;/strong&gt;는 생각보다 간단합니다. (그림이 복잡해 보이는 건 저의 부족한 그림 솜씨 때문입니다. 또륵&amp;hellip;  ​ 👀 💧)&lt;/p&gt;
+&lt;p&gt;먼저 검은색으로 표현된 플로우에 대해 말씀드릴게요. 가정에서 사용하는 자가용 차량에 배기가스 측정기를 부착하고 해당 IoT 측정기기에서 측정된 &lt;strong&gt;탄소 배출량을 블록체인으로 기록하는 플로우&lt;/strong&gt;입니다.&lt;/p&gt;
+&lt;p&gt;연보라로 표현된 플로우는 &lt;strong&gt;블록체인에 저장된 탄소배출량을 각 클라이언트들(챗봇, 블록체인 웹 플랫폼)이 어떻게 사용하는지를 나타낸 플로우&lt;/strong&gt;입니다. 챗봇과 같은 경우, 사용자의 질의어를 이해하기 위해 &lt;strong&gt;IBM Watson&lt;/strong&gt;을 사용하게 됩니다. &lt;strong&gt;NLP&lt;/strong&gt; 처리를 한 이후, 사용자의 질의에 맞는 적절한 데이터를 가져오게 됩니다.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;비하인드 스토리&lt;/strong&gt;는 다음과 같습니다&amp;hellip; 💰&lt;/p&gt;
+&lt;p&gt;본래 블록체인 플랫폼은 IBM Blockchain Platform을 사용하려고 했는데요, IBM측에서 회원 가입시 제공해주는 20만 크레딧으로는 이 기능을 사용할 수가 없었습니다. 너무 비싸서&amp;hellip; 한 5일만 지나도 크레딧이 동날 정도의 요금이더라구요. IBM 측에서도 슬랙 채널 공지를 통해 과금 문제가 있을 수 있으니 필히 주의 바란다고 공지를 할 정도였으니까요.&lt;/p&gt;
+&lt;p&gt;이런 이유에서 IBM 제품이 아닌 카카오의 Klaytn 블록체인을 사용하게 되었습니다. 클레이튼도 훌륭한 블록체인 플랫폼이라 기술적으로 전혀 문제 없고 취지에 잘 맞게 사용할 수 있었습니다. IBM 블록체인 플랫폼을 사용해보지 못한 게 약간의 아쉬움으로 남았네요.&lt;/p&gt;
+&lt;h2 id=&#34;summary&#34;&gt;Summary&lt;/h2&gt;
+&lt;p&gt;&amp;ldquo;측정되지 않으면 통제할 수 없고, 공유되지 않으면 바꿀 수 없습니다.&amp;rdquo;&lt;/p&gt;
+&lt;p&gt;피터 드러커가 한 말을 인용해보았는데요, 저희 이타카팀의 철학이라고도 할 수 있겠습니다. 이산화탄소의 측정과 관리를 돕기 위해 노력했고 향후 탄소세가 제도적으로 안착될 때 거부감을 최소화 할 수 있는 플랫폼을 개발하기 위해 치열하게 고민하고 개발한 1박 2일이었던 것 같습니다.&lt;/p&gt;
+&lt;p&gt;좋은 기회 만들어주신 IBM Call for Code 준비 위원분들께 감사의 말씀을 드리고 싶네요. 앞으로도 재밌고 유익한 자리 많이 만들어주세요. 감사합니다. 👏👏👏&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-06-13-ibm-callforcode-2020/10.png&#34; alt=&#34;top3_awards&#34;&gt;&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Golang Korea Online Meetup Review</title>
+      <link>aeharvlee.github.io/posts/2020-05-28-golang-korea-meetup/</link>
+      <pubDate>Thu, 28 May 2020 00:00:00 +0000</pubDate>
+      
+      <guid>aeharvlee.github.io/posts/2020-05-28-golang-korea-meetup/</guid>
+      <description>&lt;p&gt;고랭 코리아 5월 온라인 밋업 후기 공유드립니다. 저에게 발표할 수 있는 기회를 주신 Golang Korea 정말 감사합니다.  🙌&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-05-28-golang-korea-meetup/0.png&#34; alt=&#34;presentation_title&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;golang-korea-online-meetup&#34;&gt;Golang Korea Online Meetup&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;온라인 발표 영상링크:&lt;/strong&gt; &lt;a href=&#34;https://www.youtube.com/watch?v=8CYYw7tz8C4&#34;&gt;Go와 Python의 이점을 둘 다 누릴 수 있는 마이크로 서비스 아키텍처&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;올해 2월부터 5월까지 열심히 개발했던 Threat Intelligence API 서비스 개발 경험을 정리해서 고랭 코리아 온라인 밋업에서 발표를 했습니다. (위 링크를 클릭하시면 발표 내용을 만나보실 수 있습니다.)&lt;/p&gt;
+&lt;p&gt;평소 Go언어에 정말 관심이 많고 꼭 회사 프로젝트에서도 사용해보고 싶었습니다. 그래서 틈틈이 튜토리얼 그리고 책을 통해 조금씩 접하고 있었는데요, 마침 올해 초에 새로운 서비스 개발이 필요해졌고 해당 프로젝트에서 Go를 사용해볼 수 있었습니다.&lt;/p&gt;
+&lt;p&gt;위 밋업 내용은 블로그 포스팅 &lt;a href=&#34;https://aeharvlee.github.io/go/python/go-restful-api-with-python-grpc-server/&#34;&gt;RESTful API(gRPC Client) + Python gRPC Server&lt;/a&gt; 도 작성되어 있으니 글로 봐주셔도 좋을 것 같습니다. 🙂&lt;/p&gt;
+&lt;p&gt;온라인에서 발표해보는 건 거의 처음이여서 기대도 되었지만 걱정도 되었는데요, 다행히 발표 당일날 Golang Korea분들께서 편안한 분위기 속에 진행할 수 있게끔 도와주셔서 무사히 마칠 수 있었습니다.&lt;/p&gt;
+&lt;p&gt;개발만 하다보면 의욕이 떨어질 때가 간혹 있는데, 블로그 포스팅으로 개발 내용을 공유하거나 밋업에서 발표를 통해 내가 개발한 것들을 공유하고 피드백을 받으면 큰 힘이 되는 것 같습니다.&lt;/p&gt;
+&lt;p&gt;지금은 아직 Go린이지만 언젠가 Go수의 대열에 오르고 싶습니다. 다음 밋업에서는 좀 더 Advanced하고 흥미로운 내용을 공유드릴 수 있었으면 좋겠네요.&lt;/p&gt;
+&lt;p&gt;읽어주셔서 감사합니다.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>How to renew entire table&#39;s rows safely?</title>
+      <link>aeharvlee.github.io/posts/2020-05-19-renew-table-safely/</link>
+      <pubDate>Tue, 19 May 2020 00:00:00 +0000</pubDate>
+      
+      <guid>aeharvlee.github.io/posts/2020-05-19-renew-table-safely/</guid>
+      <description>&lt;p&gt;안전하게 테이블의 내용을 갱신하는 방법에 대해 공유드립니다.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-05-19-renew-table-safely/0.png&#34; alt=&#34;mysql_logo&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;1-introduction&#34;&gt;1. Introduction&lt;/h2&gt;
+&lt;p&gt;이름은 동일하지만 매일 혹은 주기적으로 완전히 새로운 내용으로 갱신되어야 하는 MySQL 테이블이 있으신가요?&lt;/p&gt;
+&lt;p&gt;혹시 &lt;code&gt;TRUNCATE TABLE important_table&lt;/code&gt; 를 한 뒤에 새로운 데이터를 삽입해주는 프로세스를 진행하고 있진 않으신가요?&lt;/p&gt;
+&lt;p&gt;만약 그렇다면 &lt;code&gt;TRUNCATE&lt;/code&gt; 이후 에러가 발생하면 사실상 빈 테이블이 되는 것이고 서비스 장애상태가 발생하게 되는데, 어떻게 하면 안전하게 테이블을 새로운 데이터로 깔끔하게 교체할 수 있을까요?&lt;/p&gt;
+&lt;p&gt;위와 같은 고민을 하고 계시다면 이 글이 도움이 되실겁니다!  🙌&lt;/p&gt;
+&lt;p&gt;본 글에서는 &amp;ldquo;어떻게 하면 안전하게 테이블을 새 데이터로 교체할 수 있을까?&amp;ldquo;에 대해 다룹니다. 🙂&lt;/p&gt;
+&lt;h2 id=&#34;2-body&#34;&gt;2. Body&lt;/h2&gt;
+&lt;h3 id=&#34;21-상황문제-설명&#34;&gt;2.1. 상황(문제) 설명&lt;/h3&gt;
+&lt;p&gt;매일 정해진 시간에 테이블의 데이터를 갱신하는 Python 스크립트가 있습니다. 스크립트의 역할은 pandas 프레임워크로 방대한 양의 데이터를 처리한 뒤 테이블의 내용을 교체해주는 겁니다.&lt;/p&gt;
+&lt;p&gt;처음 필자가 사용했던 방법론은 아래와 같습니다.&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;code&gt;important_table&lt;/code&gt;에 새롭게 삽입할 예정인 다량의 데이터를 pandas로 연산&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;TRUNCATE TABLE important_table&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;1번에서 계산하여 도출한 다량의 데이터를 테이블에 삽입 &lt;code&gt;pandas_dataframe.to_sql(important_table, alchemy_engine, schema, if_exists=&#39;append&#39;, index=False)&lt;/code&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;이 프로세스에는 치명적인 오류가 있는데요, &amp;ldquo;2번까지 성공하더라도 3번에서 실패하면 서비스는 장애상태가 된다.&amp;ldquo;라는 점입니다.&lt;/p&gt;
+&lt;p&gt;실제로 여러 환경적 요인으로 3번과 같은 대량의 insert문은 간헐적으로 실패를 할 수 있습니다. &lt;strong&gt;따라서 3번이 한큐에 성공한다는 보장은 정말 위험한 가정입니다.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;&amp;ldquo;2번과 3번을 같은 Transaction에 묶고 완료가 된 이후 commit하면 안전하지 않나요?&amp;quot;&lt;/strong&gt; 라는 의문을 가지실 수 있는데, 아래의 문장을 읽어보시면 바로 이해가 되실 겁니다.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;truncate&lt;/strong&gt; is not  &amp;ldquo;transactional&amp;rdquo; in the sense that it commits and can&amp;rsquo;t be rolled back,  and can modify object storage attributes. So it&amp;rsquo;s not ordinary &lt;strong&gt;DML&lt;/strong&gt; - Oracle classifies it as &lt;strong&gt;DDL&lt;/strong&gt;. delete is an ordinary &lt;strong&gt;DML&lt;/strong&gt; statement.&lt;/p&gt;
+&lt;p&gt;truncate 명령은 &lt;strong&gt;DDL&lt;/strong&gt;(Data Description Language)로 분류되기 때문에 &lt;strong&gt;DML&lt;/strong&gt;(Data Manipulation Language)처럼 트랜잭션처럼 처리할 수 없습니다. 롤백될 수도 없구요.&lt;/p&gt;
+&lt;h3 id=&#34;22-해결-방법&#34;&gt;2.2. 해결 방법&lt;/h3&gt;
+&lt;p&gt;제가 문제 해결을 위해 사용한 방법은 &lt;strong&gt;&amp;ldquo;다른 테이블에 대량의 데이터를 insert하고, 성공했다면 기존 테이블과 교체&amp;rdquo;&lt;/strong&gt; 였습니다.&lt;/p&gt;
+&lt;script type=&#34;application/javascript&#34; src=&#34;https://gist.github.com/aeharvlee/f399dcb42b5ece1f429f15b6b68b26f3.js&#34;&gt;&lt;/script&gt;
+
+&lt;p&gt;이렇게 코드를 작성하면 실패했을 때 기존 테이블의 데이터가 소실될 염려가 없고 실패 하더라도 원본 테이블의 내용은 보존됩니다.&lt;/p&gt;
+&lt;h2 id=&#34;3-summary&#34;&gt;3. Summary&lt;/h2&gt;
+&lt;p&gt;Database 관련 연산을 다룰 때는 항상 &lt;strong&gt;실행 도중 실패할 가능성을 염두해두는 것이 중요합니다.&lt;/strong&gt; 각 연산의 단계별로 **&amp;ldquo;실패했을 때는 어떻게 하는 게 맞지?&amp;quot;**라는 의문을 가지고 코드를 작성한다면 훨씬 안전한 코드, 예상한 대로 동작하는 코드가 될 것 같습니다.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Go RESTful API(gRPC Client) &#43; Python gRPC server</title>
+      <link>aeharvlee.github.io/posts/2020-04-21-go-restful-api-with-python-grpc-server/</link>
+      <pubDate>Tue, 21 Apr 2020 00:00:00 +0000</pubDate>
+      
+      <guid>aeharvlee.github.io/posts/2020-04-21-go-restful-api-with-python-grpc-server/</guid>
+      <description>&lt;p&gt;Go와 Python을 활용한 마이크로 서비스 아키텍처 활용 사례를 공유드립니다.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-04-21-go-restful-api-with-python-grpc-server/0.png&#34; alt=&#34;gopher_looking_at_python&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;1-introduction&#34;&gt;1. Introduction&lt;/h2&gt;
+&lt;p&gt;얼마 전 런칭한 클라우드브릭의 Threat Intelligence API는 &lt;strong&gt;Go RESTful API&lt;/strong&gt; (gRPC Client)와 &lt;strong&gt;Python gRPC Server&lt;/strong&gt; (with pandas)로 만들어졌습니다.&lt;/p&gt;
+&lt;p&gt;본 글에서는 왜 &lt;strong&gt;Go RESTful API&lt;/strong&gt;와 &lt;strong&gt;Python gRPC Server&lt;/strong&gt;의 조합으로 서비스를 만들었는지를 공유하고자 합니다. 👀
+비슷한 고민을 하시는 분들께 도움이 되었으면 좋겠습니다. 🙏&lt;/p&gt;
+&lt;h2 id=&#34;2-design&#34;&gt;2. Design&lt;/h2&gt;
+&lt;h3 id=&#34;21-requirements&#34;&gt;2.1. Requirements&lt;/h3&gt;
+&lt;p&gt;Threat Intelligence API를 개발할 때, 아래와 같은 요구사항이 있었습니다.&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;가볍고 빨라야 한다.&lt;/strong&gt;
+서버의 리소스를 적게 사용하면서 사용자들의 요청을 빠르게 처리해야 합니다. &lt;strong&gt;(Cost Efficiency)&lt;/strong&gt; 💸&lt;/li&gt;
+&lt;li&gt;실시간으로 위협 정보가 업데이트되는 클라우드브릭의 DB에서
+&lt;strong&gt;클라이언트가 원하는 데이터를 빠르게 연산하여 즉각 전달&lt;/strong&gt;해주어야 합니다.
+&lt;strong&gt;(Fast and flexible data analysis and manipulation)&lt;/strong&gt; 👐&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;1번의 요구사항을 충족하기 위해 저는 Go를 선택했습니다.  사용해보니 실제로 사용하는 리소스도 매우 적고 속도도 매우 빨랐습니다.  선택하길 정말 잘했다는 생각이 듭니다. 🙂&lt;/p&gt;
+&lt;p&gt;API를 설계할 때 사실상 제일 중요했던 2&lt;strong&gt;번 요구사항&lt;/strong&gt;은 저의 발목을 잡았습니다. 🍗&lt;/p&gt;
+&lt;p&gt;Go를 사용하고 싶었지만, Go만으로 2번 요구사항을 만족하는 것이 쉽지 않았기 때문입니다.&lt;/p&gt;
+&lt;p&gt;클라우드브릭 데이터베이스에 &lt;strong&gt;매일 쌓이는 수많은 로우데이터에서&lt;/strong&gt; 클라이언트의 요청에 맞는 데이터만 쏙쏙 추출해줘야하는데, &lt;strong&gt;쿼리만으로는 이 문제를 해결하기가 어려웠습니다.&lt;/strong&gt; (데이터 구조도 복잡하고 무엇보다 이 서비스만을 위해 만들어진 디비 스키마가 아니었습니다. 그래서 상당히 많은 조작을 필요로 했습니다.)&lt;/p&gt;
+&lt;p&gt;복잡한 조건을 가진 쿼리를 많이 요청해야 했고 속도 또한 느렸습니다.
+복잡한 조건의 쿼리를 많이 요청하면**, 디비에 부하가 심해지는 문제가 있었고** 무엇보다 **속도가 느린 게 가장 치명적이었습니다.** 😿&lt;/p&gt;
+&lt;p&gt;결국 저는 2번 요구사항을 충족하기 위해 “Python의 &lt;strong&gt;pandas 라이브러리&lt;/strong&gt;를 사용해서 문제를 해결하자!”라는 결론을 도출하게 되었습니다.&lt;/p&gt;
+&lt;p&gt;pandas 라이브러리를 사용하면 별도의 복잡한 조건 없이 &lt;strong&gt;SELECT 쿼리만으로 필요한 데이터를 가져와서 메모리에 로드하고, 원하는 결과를 빠르게 도출할 수 있습니다.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;복잡한 조건의 쿼리를 여러 번 디비서버에 요청할 필요가 없으니 &lt;strong&gt;디비 서버에 부하는 줄고,&lt;/strong&gt; 더군다나 &lt;strong&gt;원하는 데이터를 추출하는 속도도 빠르다는 점&lt;/strong&gt;에서 &lt;strong&gt;pandas&lt;/strong&gt;는 정말 사랑스러운 라이브러리가 아닐 수 없습니다. 💚&lt;/p&gt;
+&lt;h3 id=&#34;22-design&#34;&gt;2.2 Design&lt;/h3&gt;
+&lt;p&gt;Go와 Python을 함께 사용하기로 했으니 이제는 설계를 할 차례입니다. 💪&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-04-21-go-restful-api-with-python-grpc-server/1.png&#34; alt=&#34;architecture_go_with_python&#34;&gt;&lt;/p&gt;
+&lt;p&gt;저는 위와 같이 설계를 했고 각 컴포넌트(파란 박스)의 역할은 다음과 같습니다.&lt;/p&gt;
+&lt;h4 id=&#34;221-go-restful-api&#34;&gt;2.2.1. Go RESTful API&lt;/h4&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Echo Framework를 사용하였으며 &lt;a href=&#34;https://github.com/bxcodec/go-clean-arch&#34;&gt;Go Clean Architecture&lt;/a&gt;를 참조하여 프로젝트를 구성하였습니다.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;&lt;strong&gt;Role&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;복잡한 연산을 요구하지 않는 간단한 쿼리를 필요로하는 클라이언트의 요청을 직접 처리합니다.&lt;/li&gt;
+&lt;li&gt;복잡한 연산을 요구하는, 즉 간단한 쿼리만으로 해결되지 않고 많은 양의 데이터 처리를 해야하는 작업은 &lt;strong&gt;Python gRPC 서버&lt;/strong&gt;에게 요청합니다.
+&lt;strong&gt;(gRPC Client의 역할)&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;222-python-grpc-server&#34;&gt;2.2.2. Python gRPC Server&lt;/h4&gt;
+&lt;p&gt;&lt;strong&gt;Role&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Go RESTful API&lt;/strong&gt;로부터 받은 요청을 처리합니다.
+많은 양의 데이터를 &lt;strong&gt;pandas&lt;/strong&gt; 라이브러리로 효과적으로 빠르게 처리하고 grpcClient인 Go API에게 추출한 결과 데이터를 반환해줍니다.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;이렇게 구성하여 저는 Go와 Python의 이점을 둘 다 누릴 수 있습니다.&lt;/p&gt;
+&lt;h2 id=&#34;3-implementation&#34;&gt;3. Implementation&lt;/h2&gt;
+&lt;h3 id=&#34;31-protocol-buffers--protobuf&#34;&gt;3.1. Protocol Buffers (= protobuf)&lt;/h3&gt;
+&lt;p&gt;&lt;strong&gt;gRPC 서비스&lt;/strong&gt;는 기본적으로 &lt;a href=&#34;https://developers.google.com/protocol-buffers&#34;&gt;Protocol Buffers&lt;/a&gt;라는 특별한 자료구조를 사용하여 통신을 합니다.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;gRPC&lt;/strong&gt;를 사용하길 정말 잘했다고 생각한 부분은, &lt;strong&gt;protobuf&lt;/strong&gt;를 사용하기 위해 개발자가 따로 코딩을 할 필요가 없다는 점입니다. 👀&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;.proto&lt;/code&gt; 파일을 정의하고 &lt;strong&gt;protoc&lt;/strong&gt;(= Protocol Buffers Compiler)로 적절한 옵션을 주어 원하는 언어로 컴파일하면, &lt;strong&gt;probouf&lt;/strong&gt;에 정의한 데이터를 주고 받을 수 있는 &lt;strong&gt;인터페이스 코드를 뚝딱 만들어줍니다.&lt;/strong&gt; 👏👏&lt;/p&gt;
+&lt;p&gt;제가 필요한 건, Go와 Python으로 &lt;strong&gt;protobuf&lt;/strong&gt;를 다룰 수 있는 &lt;strong&gt;인터페이스 코드&lt;/strong&gt;이니 아래와 같이 protoc를 사용해서 컴파일을 해줍니다.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-shell&#34; data-lang=&#34;shell&#34;&gt;&lt;span style=&#34;color:#75715e&#34;&gt;# If you installed protoc using Python...&lt;/span&gt;
+python -m grpc_tools.protoc --proto_path&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;./protos &lt;span style=&#34;color:#ae81ff&#34;&gt;\ &lt;/span&gt;
+--python_out&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;./gen/python &lt;span style=&#34;color:#ae81ff&#34;&gt;\ &lt;/span&gt;
+--grpc_python_out&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;./gen/python &lt;span style=&#34;color:#ae81ff&#34;&gt;\ &lt;/span&gt;
+./protos/black_ipv4.proto
+
+&lt;span style=&#34;color:#75715e&#34;&gt;# Or if you install just plain protoc&lt;/span&gt;
+protobuf.protoc --go_out&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;plugins&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;grpc:./gen/go/ protos/black_ipv4.proto
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;위와 같이 컴파일을 해주면 자신이 정의한 &lt;code&gt;.proto&lt;/code&gt;를 다룰 수 있는 인터페이스 코드를 Python과 Go 언어로 생성할 수 있습니다. 🍳
+개발자가 할 일은 단지 생성된 코드를 import 해서 사용하기만 하면 됩니다. 👏👏&lt;/p&gt;
+&lt;h3 id=&#34;32-lets-use-protobuf&#34;&gt;3.2. Lets Use protobuf&lt;/h3&gt;
+&lt;p&gt;구체적으로 gRPC 클라이언트인 &lt;strong&gt;Go RESTful API&lt;/strong&gt;가 어떻게 &lt;strong&gt;Python gRPC 서버&lt;/strong&gt;에게 연산을 요청하는지를 &lt;code&gt;.proto&lt;/code&gt; 파일과 함께 살펴봅시다. ⭐&lt;/p&gt;
+&lt;p&gt;더불어 &lt;strong&gt;Python gRPC서버&lt;/strong&gt;가 gRPC 클라이언트인 Go API에게 어떤 데이터를 제공해주는지도 함께 살펴보겠습니다.&lt;/p&gt;
+&lt;script type=&#34;application/javascript&#34; src=&#34;https://gist.github.com/aeharvlee/4e737aed3b245a17a3b95e815130a0e5.js&#34;&gt;&lt;/script&gt;
+
+&lt;p&gt;Threat Intelligence API에는 &lt;strong&gt;특정 블랙 아이피에 대한 평판정보(Reputation)를 조회할 수 있는 기능이 있습니다.&lt;/strong&gt;
+이 기능은 복잡한 데이터 연산을 요구하는 작업이여서 Python gRPC 서버가 처리하고 있습니다.&lt;/p&gt;
+&lt;p&gt;27라인의 &lt;code&gt;message ReputationRequest&lt;/code&gt;을 보면 클라이언트가 gRPC 서버에게 요청하는 &lt;strong&gt;요청 정보&lt;/strong&gt;가 정의되어 있습니다.&lt;/p&gt;
+&lt;p&gt;이 요청 정보는 Threat Intelligence API를 사용하는 사용자가 직접 옵션으로 주는 값입니다.
+Go RESTful API는 이 요청정보를 그대로 Python gRPC 서버에게 전달해주기 때문에 별도로 정의를 해둔 것입니다.&lt;/p&gt;
+&lt;p&gt;35라인에 정의되어 있는 &lt;code&gt;message Reputation&lt;/code&gt;은 gRPC 서버가 요청을 처리 한 뒤,
+gRPC 클라이언트에게 반환하는 자료구조입니다.&lt;/p&gt;
+&lt;h3 id=&#34;33-grpc&#34;&gt;3.3. gRPC&lt;/h3&gt;
+&lt;p&gt;Python gRPC가 처리하는 서비스에 대한 정의는 5라인에 &lt;code&gt;service BlackIPv4Service&lt;/code&gt;로 정의되어 있습니다. (예시를 위해 한 가지 rpc만 정의해두었습니다.)&lt;/p&gt;
+&lt;p&gt;매개변수로 &lt;code&gt;ReputationRequest&lt;/code&gt;를 받고 있다는 걸 확인할 수 있습니다.
+즉, Go gRPC client가 Python gRPC서버에게 요청할 때는
+해당 자료형에 맞게 요청해야한다는 걸 알 수 있습니다.&lt;/p&gt;
+&lt;script type=&#34;application/javascript&#34; src=&#34;https://gist.github.com/aeharvlee/8abc65f000b54cd0c0feff71370ea10a.js&#34;&gt;&lt;/script&gt;
+
+&lt;p&gt;4 ~ 9라인에 그 내용이 기술되어 있습니다. 사용자들이 요청한 정보(&lt;code&gt;rr *model.ReputationRequest&lt;/code&gt;)를 RPC 호출시 그대로 사용하고 있는 것을 확인하실 수 있습니다. ✅&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;black_ipv4.proto&lt;/code&gt;의 27라인에 기재되어 있는 &lt;code&gt;ReputationRequest&lt;/code&gt;의 포맷에 맞춰 gRPC 서버에게 요청하고 있다는 것을 보시면 됩니다. 🙂&lt;/p&gt;
+&lt;script type=&#34;application/javascript&#34; src=&#34;https://gist.github.com/aeharvlee/d08f58137153f75b301df2e2c3c41185.js&#34;&gt;&lt;/script&gt;
+
+&lt;p&gt;&lt;strong&gt;Pyhton gRPC 서버&lt;/strong&gt;는 gRPC 클라이언트가 요청한 데이터를 &lt;code&gt;request&lt;/code&gt;로 받고 &lt;code&gt;get_reputation_by_ipv4(cnx, request)&lt;/code&gt; 를 통해 처리한 뒤 결과 &lt;code&gt;reputation&lt;/code&gt;을 &lt;strong&gt;gRPC 클라이언트&lt;/strong&gt;에게 리턴해줍니다. 🎉&lt;/p&gt;
+&lt;p&gt;gRPC 클라이언트인 Go RESTful API 서버는 해당 데이터를 그대로 클라이언트에게 전달만 해주면 끝입니다. 😄&lt;/p&gt;
+&lt;h2 id=&#34;4-summary&#34;&gt;4. Summary&lt;/h2&gt;
+&lt;p&gt;문제해결을 위해 다양한 언어가 필요하다면, 대부분 Microservice Architecture로 구현을 해야합니다.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;gRPC 통신&lt;/strong&gt;은 &lt;strong&gt;Protocol Buffers&lt;/strong&gt; 자료구조를 활용하여 Microservice들이 서로 통신하기 매우 편리하고 적합한 환경을 제공합니다.&lt;/p&gt;
+&lt;p&gt;개발 생산성도 좋고 동작도 잘하니 비슷한 고민을 하고 계시다면 적극적으로 도입을 검토하셔도 좋을 것 같습니다.&lt;/p&gt;
+&lt;p&gt;마이크로 서비스 아키텍처를 고민하신다면, Protocol Buffers를 사용하는 gRPC 통신으로 서비스를 구현해보시는 건 어떨까요?&lt;/p&gt;
+&lt;p&gt;읽어주셔서 감사합니다!&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Huge Improvement of performance in pandas</title>
+      <link>aeharvlee.github.io/posts/2020-04-01-huge-improvement-of-performance-in-pandas/</link>
+      <pubDate>Wed, 01 Apr 2020 00:00:00 +0000</pubDate>
+      
+      <guid>aeharvlee.github.io/posts/2020-04-01-huge-improvement-of-performance-in-pandas/</guid>
+      <description>&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-04-01-huge-improvement-of-performance-in-pandas/0.png&#34; alt=&#34;pandas&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;1-introduction&#34;&gt;1. Introduction&lt;/h2&gt;
+&lt;blockquote&gt;
+&lt;p&gt;pandas는 파이썬에서 사용되는 데이터 분석 라이브러리입니다. 데이터를 처리하는데 매우 빠르고 능합니다. 🚗&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;그러나 결국 pandas도 하나의 라이브러리, 도구이기 때문에 &lt;strong&gt;잘못 사용하는 경우 프로그램 성능이 급격하게 안좋아질 수 있습니다.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;본 글에서는 제가 클라우드브릭에서 &lt;strong&gt;Malicious IPv4&lt;/strong&gt; 서비스를 개발 중에 겪었던 실제 사례를 통해 어떻게 하면 성능 저하가 심해지는지, 그리고 이를 어떻게 극복했는지를 공유드리고자 합니다. 💪&lt;/p&gt;
+&lt;h2 id=&#34;2-body&#34;&gt;2. Body&lt;/h2&gt;
+&lt;h3 id=&#34;21-상황-설명&#34;&gt;2.1. 상황 설명&lt;/h3&gt;
+&lt;p&gt;특정 아이피가 얼마나 위험한지에 대한 정보를 담고 있는 &lt;strong&gt;ildf&lt;/strong&gt;(=intrusion log DataFrame)라는 &lt;strong&gt;DataFrame&lt;/strong&gt;이 있습니다. 약 200만개의 로우를 담고 있고 &lt;strong&gt;ildf&lt;/strong&gt;로부터 제가 얻고 싶은 데이터는 &lt;strong&gt;“각 아이피가 어떤 목적의 공격을 몇 번 행했는가?”&lt;/strong&gt; 입니다.&lt;/p&gt;
+&lt;p&gt;이를 위해 저는 pandas.DataFrame.&lt;strong&gt;groupby&lt;/strong&gt; 연산을 사용하여 그룹화된 정보를 추출했고 데이터는 아래와 같습니다.&lt;/p&gt;
+&lt;script type=&#34;application/javascript&#34; src=&#34;https://gist.github.com/aeharvlee/6c675bf180c25096e69738050225253d.js&#34;&gt;&lt;/script&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;데이터베이스에 아이피 정보를 스트링 포맷(e.g., 127.0.0.1)이 아닌 Integer로 저장했는데 이는 &lt;strong&gt;쿼리의 성능&lt;/strong&gt;과 &lt;strong&gt;데이터의 무결성&lt;/strong&gt;을 위함입니다. 일반적으로 아이피를 저장할 때는 String이 아닌 &lt;strong&gt;Integer&lt;/strong&gt;로 저장합니다. 👀&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;위의 데이터를 보면 **“각 아이피가 어떤 목적의 공격을 몇 번 행했는가?”**에 대한 정보가 나와 있습니다. 원하는 정보를 얻어냈으니 다음으로 제가 하고싶은 작업은 뽑아낸 정보를 데이터베이스화 하는 작업입니다.&lt;/p&gt;
+&lt;p&gt;위처럼 가공하는 이유는 전세계 곳곳에 분포되어 있는 클라우드브릭의 &lt;strong&gt;WAF&lt;/strong&gt;(Web Application Firewall)가 수집하는 탐지로그(Raw data)를 그대로 활용하는 것보다는 가공해서 클라우드브릭이 &lt;strong&gt;차단한 아이피에 대해 의미 있는 정보를 추출하고 이를 서비스 곳곳에 활용하기 위함입니다.&lt;/strong&gt; 💪&lt;/p&gt;
+&lt;p&gt;데이터베이스화를 원활히 진행하기 위해 새로운 &lt;strong&gt;DataFrame&lt;/strong&gt;을 생성하였고 컬럼은 아래처럼 클라우드브릭에서 취급하는 &lt;strong&gt;공격 목적의 이름들로 구성했습니다.&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-python&#34; data-lang=&#34;python&#34;&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt; stat_pd &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; pd&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;DataFrame(columns&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;[&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;ipv4&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;vulnerability_scan&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;falsifying_websites&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;interrupting_server&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;spreading_malware&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;identity_theft&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;monetary_loss&amp;#39;&lt;/span&gt;])
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;위 &lt;strong&gt;DataFrame&lt;/strong&gt;에서 &lt;strong&gt;ipv4&lt;/strong&gt;는 Primary Key이고, 특정 아이피가 어떤 목적으로 공격을 몇 번 행했는지를 &lt;code&gt;stat_pd&lt;/code&gt;의 각 컬럼에 integer 값으로 기록합니다. 공격 이력이 없는 컬럼에 대해서는 디폴트로 0이 삽입됩니다. (해당 목적의 공격을 하지 않았으니 횟수가 0이 되는 것은 당연합니다.)&lt;/p&gt;
+&lt;h3 id=&#34;22-성능-저하-문제-발생&#34;&gt;2.2. 성능 저하 문제 발생&lt;/h3&gt;
+&lt;p&gt;데이터베이스화를 위한 준비를 마쳤으니 새로 생성한 &lt;strong&gt;DataFrame&lt;/strong&gt; &lt;code&gt;stat_pd&lt;/code&gt;에 값을 삽입할 차례입니다.&lt;/p&gt;
+&lt;p&gt;제가 처음에 시도한 방식은 아래와 같습니다. 약 200만개의 아이피를 순회하면서 각 아이피의 공격 목적과 횟수를 &lt;code&gt;stat_pd&lt;/code&gt;에 삽입하기 위한 연산을 진행했습니다.&lt;/p&gt;
+&lt;script type=&#34;application/javascript&#34; src=&#34;https://gist.github.com/aeharvlee/0196a2d529fe382bdb9c6eeb5c8ebe1d.js&#34;&gt;&lt;/script&gt;
+
+&lt;p&gt;각각 리스트를 생성하고 컬럼에 통째로 삽입해주는 방법을 사용한 건 속도를 위해서였습니다만, 결과적으로 위와 같이 코딩하면 계산과정에서만 &lt;strong&gt;약 20분 정도의 시간이 소요됩니다.&lt;/strong&gt; 🐢&lt;/p&gt;
+&lt;p&gt;고작 200만개의 데이터를 선형 탐색하며 처리하는데 걸리는 시간이 20분이라니… 말도 안되는 성능입니다. 도대체 왜 이렇게 오래 걸린걸까요? 🤔&lt;/p&gt;
+&lt;p&gt;위 코드 중 병목이 생기는 구간은 바로 10라인의 &lt;code&gt;for attack_purpose, detected_cnt in grp_attack_purpose[ipv4].items(): &lt;/code&gt;부분입니다. ✅&lt;/p&gt;
+&lt;p&gt;아래와 같은 데이터에 대해 특정 아이피로 탐색하여 각 항목과 숫자를 가져오는 연산을 200만번 반복했기 때문에 시간이 오래 걸린 것입니다. 루프가 한번 돌 때마다 아래의 데이터 구조에서 &lt;strong&gt;특정 아이피로 조회를 해서 데이터를 가져오는 것&lt;/strong&gt;이므로 속도가 당연 느릴 수밖에 없었습니다. 😫&lt;/p&gt;
+&lt;script type=&#34;application/javascript&#34; src=&#34;https://gist.github.com/aeharvlee/e08455b1741d62ab33400f421fb88186.js&#34;&gt;&lt;/script&gt;
+
+&lt;h3 id=&#34;23-문제-해결&#34;&gt;2.3. 문제 해결&lt;/h3&gt;
+&lt;p&gt;위와 같은 문제를 해결하기 위해서는 어떻게 하면 좋을까요? 이에 대해 제가 내린 해답은 &lt;strong&gt;“컴퓨터가 가장 잘하는 것을 활용하자&amp;quot;&lt;/strong&gt; 였습니다. ☝️&lt;/p&gt;
+&lt;p&gt;컴퓨터가 잘하는 건 바로 위에서부터 아래로 단순하게 쭈욱 한 번만 훑어보는 것, 즉 O(N)의 시간복잡도로 문제를 해결하는 것입니다.&lt;/p&gt;
+&lt;p&gt;저는 &lt;strong&gt;numpy array&lt;/strong&gt;를 활용해서 &lt;strong&gt;Row&lt;/strong&gt;(아이피의 갯수, 약 200만개) x &lt;strong&gt;Col&lt;/strong&gt;(공격목적의 갯수, 7개)의 형태를 가지는 &lt;strong&gt;2차원 배열을 생성했습니다.&lt;/strong&gt;&lt;/p&gt;
+&lt;script type=&#34;application/javascript&#34; src=&#34;https://gist.github.com/aeharvlee/408e7f80f074a1ef0145eeb3949087cc.js&#34;&gt;&lt;/script&gt;
+
+&lt;p&gt;&lt;strong&gt;단 한번씩만 탐색하면서&lt;/strong&gt; 위와 같은 데이터 구조에 값을 할당하기 위해 제가 작성한 코드는 다음과 같습니다.&lt;/p&gt;
+&lt;script type=&#34;application/javascript&#34; src=&#34;https://gist.github.com/aeharvlee/e17a40805dbe7340b9901e764582090e.js&#34;&gt;&lt;/script&gt;
+
+&lt;p&gt;위에서 눈여겨 보셔야할 점은 위에서부터 순회해서 내려올 때, &lt;strong&gt;하나의 아이피가 여러 개의 공격 목적을 가지는 경우와 그렇지 않은 경우를 어떻게 구분했냐입니다.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;이를 구분하기 위해 저는 &lt;code&gt;before&lt;/code&gt;를 사용해서 각 루프마다 이전에 사용된 아이피와 동일한 값인지를 체크해주었습니다.&lt;/p&gt;
+&lt;p&gt;만약 값이 동일하다면 다음 로우로 넘어가지 않고 동일한 로우에 다른 컬럼(=다른 공격목적)으로 값을 삽입해주었습니다.&lt;/p&gt;
+&lt;p&gt;매우 심플한 솔루션으로 20분이 걸리던 연산이 무려 2분도 안되는 시간으로 단축되었습니다. &lt;strong&gt;약 10배 이상의 성능향상을 누릴 수 있었습니다.&lt;/strong&gt; 🎉&lt;/p&gt;
+&lt;h2 id=&#34;3-결론&#34;&gt;3. 결론&lt;/h2&gt;
+&lt;p&gt;pandas는 충분히 뛰어난 라이브러리지만, 이를 똑똑하게 사용하지 않으면 그 이점을 누리기 어렵습니다.&lt;/p&gt;
+&lt;p&gt;pandas를 사용하는데도 속도가 너무 오래걸리거나 효율이 안나신다면 위와 같은 상황에 놓여있지는 않은지 점검해보면 좋을 것 같습니다. 💪&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>AWS Certified Solutions Architect - Associate 취득 후기 공유</title>
+      <link>aeharvlee.github.io/posts/2020-02-26-aws-saa-c01/</link>
+      <pubDate>Wed, 26 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>aeharvlee.github.io/posts/2020-02-26-aws-saa-c01/</guid>
+      <description>&lt;blockquote&gt;
+&lt;p&gt;재직 중인 회사에서 AWS 파트너 자격 유지를 위해 SAA-C01 자격증이 필요해졌고, 2주 남짓 남은 상황에서 시험을 준비하게 되었습니다.&lt;/p&gt;
+&lt;p&gt;시험은 영문(English)으로 응시했습니다.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id=&#34;study-method-and-preparation-period&#34;&gt;Study method and preparation period&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;공부하는 데 소요된 절대적인 시간: &lt;strong&gt;약 30시간&lt;/strong&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;필자가 공부하는 데 걸린 기간: &lt;strong&gt;2주 간에 걸쳐 조금씩 자주 공부&lt;/strong&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;공부 방법&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;기출 문제 풀이&lt;/li&gt;
+&lt;li&gt;오답 노트 작성&lt;/li&gt;
+&lt;li&gt;잘 이해가 가지 않는 부분에 대해서는 AWS 공식 문서 참고&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;study-material&#34;&gt;Study Material&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Practice Questions 2019(800+)&lt;/strong&gt; - AWS Ceritified Solutions Architect Associate (SAA-C01): Guaranteed Pass with more than 825 latest questions &amp;hellip;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://www.aws.training&#34;&gt;AWS Training And Certification Portal&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;연습 시험 응시&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;약 20문제 정도 출제되는 시험으로 실제 시험 환경과 동일한 환경을 미리 이용할 수 있다는 장점이 있습니다.&lt;/li&gt;
+&lt;li&gt;시험 문제 및 정답에 대한 피드백이 제공되지 않으니 주의해야 합니다. (이건 본 시험도 마찬가지)
+오답 복습 이런 것이 없다는 게 흠이죠. 🤔&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;tips&#34;&gt;Tips&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;영문으로 시험 응시할 때&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;영문으로 시험을 응시할 때 원어민(native)가 아니면 시험 응시 시간에 추가로 30분을 더 부여받을 수 있습니다.
+여유롭게 보시고 싶은 분들에겐 이 옵션이 괜찮죠.&lt;/li&gt;
+&lt;li&gt;사전에 미리 신청하여야하니 영문으로 응시하고 싶은 응시자는 섣불리 결제하지 말고 미리 연락해서 스케쥴을 조율한 뒤에 결제를 진행해야합니다.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;review&#34;&gt;Review&lt;/h2&gt;
+&lt;p&gt;시험 대행사 두 곳 중 Pearson VUE를 택해서 시험을 치뤘고 시험 보는 환경은 크게 나쁘지 않았습니다.&lt;/p&gt;
+&lt;p&gt;다음 레벨인 Professional 레벨은 상황을 봐서 내년 초에 도전할 예정입니다.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-02-26-aws-saa-c01/0.png&#34; alt=&#34;aws-certified-hyunwoo-lee&#34;&gt;&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Trouble shoot pandas SettingWithCopyWarning</title>
+      <link>aeharvlee.github.io/posts/2020-01-31-trouble-shoot-pandas-setting-with-copy-warning/</link>
+      <pubDate>Fri, 31 Jan 2020 00:00:00 +0000</pubDate>
+      
+      <guid>aeharvlee.github.io/posts/2020-01-31-trouble-shoot-pandas-setting-with-copy-warning/</guid>
+      <description>&lt;h2 id=&#34;how-to-solve-settingwithcopywarning&#34;&gt;How to solve SettingWithCopyWarning&lt;/h2&gt;
+&lt;p&gt;회사에서 사용 중인 파이썬 스크립트를 분석할 일이 생겨 분석하던 중 다음과 같은 경고문을 만났습니다.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-01-31-trouble-shoot-pandas-setting-with-copy-warning/0.png&#34; alt=&#34;warning&#34;&gt;&lt;/p&gt;
+&lt;p&gt;도대체 왜 이런 문구가 떴는지를 알기 위해 이전에 실행되었던 셀을 함께 살펴보았습니다.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2020-01-31-trouble-shoot-pandas-setting-with-copy-warning/1.png&#34; alt=&#34;notebook-cell&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;local_wmp_df&lt;/code&gt; 라는 DataFrame에 특정 조건을 만족하는 로우들만 추출하기 위해 위와 같은 구문을 사용했었습니다.&lt;/p&gt;
+&lt;p&gt;위 구문의 문제점은 원본 DataFrame을 그대로 사용하고 싶은 건지, 아니면 복사본을 생성하여 다루고 싶은지가 불명확 했고 그로 인해 경고 메시지가 나온 것이었어요. 🐔&lt;/p&gt;
+&lt;p&gt;DataFrame을 다룰 때는 copy를 다루는 것인지 아니면 원본을 다루는 것인지를 항상 명시적으로 기입해줘야 한다는 걸 알았습니다. 이는 Deep Copy와 Shallow Copy 중 어떤 것을 선택할 것이냐의 문제라는 것두요. ✅&lt;/p&gt;
+&lt;p&gt;제가 필요했던 것은 원본 DataFrame에 대한 변경이 아닌 Deep Copy를 톡한 복사 및 그에따른 작업이었기 때문에 명시적으로 &lt;code&gt;.copy()&lt;/code&gt; 를 사용하여 복사를 해주었습니다.&lt;/p&gt;
+&lt;p&gt;만약 Shallow Copy로 원본 DataFrame에 대해 뭔가 변경을 하고 싶었다면, &lt;code&gt;inplace=True&lt;/code&gt; 옵션을 사용해줘서 처리할 수도 있습니다.&lt;/p&gt;
+&lt;p&gt;파이썬도 고수준 언어로 굉장히 사용하기 편리하긴 하지만, 결국 저수준 언어에서 요구하는 Shallow Copy, Deep Copy와 같이 기본 CS 지식이 필요한 언어이고 역시 기본기가 중요하구나 라는 것도 다시 상기하는 계기가 되었습니다. 💪 👀 🤜&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Improve Perofrmance of MySQL query in 3 minutes</title>
+      <link>aeharvlee.github.io/posts/2019-12-22-improve-mysql-performance/</link>
+      <pubDate>Sun, 22 Dec 2019 00:00:00 +0000</pubDate>
+      
+      <guid>aeharvlee.github.io/posts/2019-12-22-improve-mysql-performance/</guid>
+      <description>&lt;blockquote&gt;
+&lt;p&gt;대상 독자: MySQL 디비 성능을 개선하고 싶은데 아직 관련 경험이 전무한 개발자 혹은 엔지니어&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;실습을 진행하는 필자의 환경은 다음과 같습니다:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;OS:&lt;/strong&gt; MacOS 10.15.2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;MySQL:&lt;/strong&gt; Ver 8.0.18&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;MySQL Workbench&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;OS 관계 없이 MySQL과 Workbench만 있으면 됩니다. Workbench가 아닌 다른 툴을 사용해도 좋습니다.&lt;/p&gt;
+&lt;h2 id=&#34;1-개요&#34;&gt;1. 개요&lt;/h2&gt;
+&lt;p&gt;5만 개의 데이터를 다루는 연산을 수행합니다. INSERT, SELECT에 대해 다룰 것이며 어떻게 성능을 올릴 수 있을지 고민하면서 직접 실습을 진행해보도록 합시다.&lt;/p&gt;
+&lt;h3 id=&#34;11-mysql-workbench-설정&#34;&gt;1.1 MySQL Workbench 설정&lt;/h3&gt;
+&lt;p&gt;Preference &amp;gt; MySQL Session&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;DBMS connection read timeout interval (in seconds): from 30 to 300&lt;/li&gt;
+&lt;li&gt;DBMS connection timeout interval (in seconds): from 60 to 600&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;많은 데이터를 다루다 보면 요청이 다 처리되지 못한채 커넥션이 끊길 수 있기 때문에 위와 같이 설정해줍니다.&lt;/p&gt;
+&lt;h3 id=&#34;12-create-schema&#34;&gt;1.2 Create Schema&lt;/h3&gt;
+&lt;p&gt;이번 실습에 사용할 스키마를 생성 해줍니다. 필자의 경우 &lt;code&gt;test_schema&lt;/code&gt;라는 이름으로 생성해주었습니다.&lt;/p&gt;
+&lt;h2 id=&#34;2-실습&#34;&gt;2. 실습&lt;/h2&gt;
+&lt;p&gt;직접 코드를 한 단위씩 실행하면서 처리되는 시간을 살펴보도록 합시다.&lt;/p&gt;
+&lt;script type=&#34;application/javascript&#34; src=&#34;https://gist.github.com/aeharvlee/ac075359456480601ade6efe8f973551.js&#34;&gt;&lt;/script&gt;
+
+&lt;p&gt;아래는 실행 결과를 도식화한 표입니다.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2019-12-22-improve-mysql-performance/0.png&#34; alt=&#34;result-of-performance-test&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;3-결론&#34;&gt;3. 결론&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;INSERT (UPDATE, DELETE의 경우에도 해당 될 겁니다.)&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;디폴트 옵션(autocommit = 1)으로 5만 개의 데이터를 삽입할 때 걸리는 시간: 약 19초&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;autocommit 옵션을 끄고 트랜잭션과 커밋으로 나누어 처리했을 때 시간: 약 2초&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;적용: 많은 양의 데이터를 다룰 때는 반드시 트랜잭션과 커밋을 나누어 처리를 해야합니다.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;SELECT&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;START TRANSACTION READ ONLY로 처리했을 경우, 성능 개선은 거의 없다.&lt;/li&gt;
+&lt;li&gt;그러나 읽기 트랜잭션 중 쓰기 트랜잭션을 방지한다는 면에서 필요할 때가 분명 있을 것이다.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;적용: 읽기 목적에 따라 트랜잭션을 적절히 사용하는 게 좋을 것 같습니다. 성능 향상은 크게 없었습니다.&lt;/strong&gt;&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Let&#39;s Encrypt: A Free, Automated, and Open Cerificate Authority by Josh Aas</title>
+      <link>aeharvlee.github.io/posts/2019-12-07-lets-encrypt-speech/</link>
+      <pubDate>Sat, 07 Dec 2019 00:00:00 +0000</pubDate>
+      
+      <guid>aeharvlee.github.io/posts/2019-12-07-lets-encrypt-speech/</guid>
+      <description>&lt;blockquote&gt;
+&lt;p&gt;SSL관련 자료를 찾다가 우연히 유튜브에서 &lt;a href=&#34;https://www.youtube.com/watch?v=ksqTu7TX83g&#34;&gt;Let&amp;rsquo;s Encrypt: A Free, Automated, and Open Cerificate Authority by Josh Aas&lt;/a&gt; 영상을 보게 되었습니다. 영상을 보고 난 후 저는 이 영상이 &lt;strong&gt;웹 보안에 관심 있는 사람&lt;/strong&gt;에게 도움이 될 것이라 생각했고, 해당 영상을 다른 분들이 보실 때 이해를 돕고자 이렇게 포스팅을 작성하게 됐습니다.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;영상에 사용된 원문의 해석과 보충 설명이 필요한 부분은 주석을 함께 덧붙여 내용이 잘 전달 될 수 있게끔 노력 했습니다만, 모든 내용을 번역한 것은 아니며 발표 슬라이드에 있는 텍스트 위주로 번역한 것임을 알려드립니다. 슬라이드의 내용을 영어로 먼저 기술하고 그 이후 해석과 주석을 덧붙였습니다. 경우에 따라서는 문장만 있고 주석이 있는 경우도 있으니 양해바랍니다.&lt;/p&gt;
+&lt;h3 id=&#34;what-is-https-https는-무엇인가요&#34;&gt;What is HTTPS (HTTPS는 무엇인가요?)&lt;/h3&gt;
+&lt;p&gt;&lt;strong&gt;HTTPS&lt;/strong&gt; is HTTP over a connection secured by TLS (used to be called SSL).&lt;/p&gt;
+&lt;p&gt;기존의 HTTP통신에 **SSL(Secure Socket Layer)**을 추가한 것이 HTTPS 입니다. HTTPS는 HTTP와는 다르게 통신하는 내용이 암호화되어 통신 주체가 아닌 제 3자가 해당 내용을 엿보거나 통제하기 어렵게 되어 있습니다.&lt;/p&gt;
+&lt;h3 id=&#34;why-is-https-important-for-everyone-왜-https가-모두에게-중요할까요&#34;&gt;Why is HTTPS Important for Everyone? (왜 HTTPS가 모두에게 중요할까요?)&lt;/h3&gt;
+&lt;p&gt;&lt;strong&gt;Users&lt;/strong&gt; aren&amp;rsquo;t in control of their data any more, Web is too complex. Need to treat everything as potentially sensitive.
+유저는 자신의 데이터에 대한 통제권이 없습니다. 데이터를 통제한다는 건, 웹에 대한 정확한 이해와 그에 따른 대처를 적절히 할 수 있다는 것인데, 그러기엔 유저가 알아야 할 것이 너무 많고 이는 유저에게 복잡하고 혼란스럽기만 합니다.&lt;/p&gt;
+&lt;p&gt;단순 웹페이지 접속 또한 쿠키 정보, 헤더 정보, 써드 파티 앱과의 통신 등 우리와 연관된 수 많은 정보들이 빠르게 네트워크를 거쳐갑니다. 사실 이 모든 데이터에 대해 알고 통제한다는 건 불가능에 가깝죠. 이는 기술을 잘 아는 사람에게도 마찬가지입니다.&lt;/p&gt;
+&lt;p&gt;그렇다면 우리는 어떻게 해야할까요? 먼저 &lt;strong&gt;모든 정보는 민감한 정보이며 반드시 암호화되어 보호받을 필요가 있다&lt;/strong&gt;라고 생각하는 것이 중요합니다. 중요하고 보호받아야 할 정보를 선별적으로 관리하는 것이 오히려 더 많은 수고로움을 요구하기 때문이죠. 따라서 수많은 데이터를 분류하기 보단 모든 데이터를 보호하자는 방향으로 접근하는 것이 좀 더 합리적일 겁니다.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Developers&lt;/strong&gt; expect integrity. Unencrypted traffic can be modified, e.g. ad insertion, script injection (e.g. great cannon).&lt;/p&gt;
+&lt;p&gt;네트워크에 흘러다니는 정보들이 암호화되어 있지 않고 누구나 다 열람해서 확인하고 변조할 수 있다면 그건 개발자한테도 매우 좋지 않습니다.&lt;/p&gt;
+&lt;p&gt;만약 여러분이 웹사이트를 개발했다고 해봅시다. 사이트 방문자에게 &amp;ldquo;A&amp;quot;라는 알파벳만 보여주게 페이지를 만들었다고 해보죠. 사이트를 개발한 여러분은 사이트 방문자들이 &amp;ldquo;A&amp;quot;라는 알파벳이 볼 거라 기대하지만, 트래픽이 암호화되지 않은 상태에서 중간에 악의적인 누군가가 사이트 컨텐츠에 광고를 끼워넣거나 &amp;ldquo;A&amp;quot;가 아닌 &amp;ldquo;ABC&amp;quot;로 내용을 바꿔서 사이트 방문자에게 전달하거나 야한 사진 등을 넣어서 전달할 수도 있습니다. 사이트 방문자 입장에서는 당연히 이런 사실에 대해 알 수도 없고, 일일이 알아보지도 않을 것이기 때문에 피해는 고스란히 사이트 개발자, 운영자에게 돌아갑니다.&lt;/p&gt;
+&lt;h3 id=&#34;important-for-you-당신에게-https는-중요한가요&#34;&gt;Important for you? (당신에게 HTTPS는 중요한가요?)&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;How many of you believe that your cell phone provider actively mines data from your unencrypted Web traffic?
+여러분 중 과연, 스마트폰의 제조회사가 **사용자의 스마트폰 데이터(e.g., 웹 트래픽 중 암호화되지 않은 데이터)**를 제조사의 이익을 위해 사용하지 않는다는 걸 100% 확신할 수 있는 사람이 몇 명이나 될까요?&lt;/li&gt;
+&lt;li&gt;How about your home ISP(Internet Service Provider)?
+여러분은 KT, SKT, LG 등 &lt;strong&gt;인터넷 서비스 제공자&lt;/strong&gt;를 얼마나 믿나요? 우리가 사용하는 데이터를 훔쳐보거나 빼가거나 하지는 않을까요?&lt;/li&gt;
+&lt;li&gt;How about your government?
+정부를 믿나요?&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;실제로 인터넷 서비스 제공자들과 정부는 우리의 웹 활동 중 일부를 감시한다고 합니다. 대표적인 예로 불법 사이트 접속을 막는 걸 생각해보실 수 있습니다. 웹 서핑하시면서 다들 한 번쯤은 파란 경찰 마크와 함께 해당 불법 사이트 차단 이미지를 봤을 거라 생각합니다. 요즘에는 인터넷으로 접속 자체가 안되게 막아놓았죠.&lt;/p&gt;
+&lt;p&gt;&amp;ldquo;불법 사이트를 차단해주다니..! 정말 건전하고 바람직해&amp;quot;라고 생각할 수도 있지만, 다른 말로 **&amp;ldquo;우리는 매 활동을 검열당하고 있고 감시 당하고 있는 거네.&amp;quot;**라고 생각할 수도 있는 겁니다. 통제의 단계가 약할 뿐이지, 언제든 더 강한 강도로 우린 억압받을 수 있고 그럴 환경은 이미 갖추어져 있습니다.&lt;/p&gt;
+&lt;h3 id=&#34;the-web-isnt-secure-웹-인터넷은-안전하지-않다&#34;&gt;The Web Isn&amp;rsquo;t Secure (웹, 인터넷은 안전하지 않다.)&lt;/h3&gt;
+&lt;p&gt;As of August 2016, only 45.5% of Firefox page loads are HTTPS. Should be 100%.&lt;/p&gt;
+&lt;p&gt;2016년 8월 파이어 폭스 브라우저 기준으로, 파이어 폭스를 거친 웹사이트들 중 45.5%만 HTTPS통신을 구현했습니다. 안전한 인터넷 활동을 위해서 이는 너무나도 적은 수치이고, 100%를 목표로 해야 합니다.&lt;/p&gt;
+&lt;h3 id=&#34;why-isnt-the-web-secure-왜-웹은-안전하지-않을까&#34;&gt;Why Isn&amp;rsquo;t the Web Secure? (왜 웹은 안전하지 않을까?)&lt;/h3&gt;
+&lt;p&gt;Security is too difficult. We know what needs to be done but we haven&amp;rsquo;t made it easy enough to do. Unitl now? More on that later&amp;hellip;&lt;/p&gt;
+&lt;p&gt;세상에는 이미 매우 유용한 암호화 방법론과 인증 관련 방법론이 많이 존재합니다. 그런데도 왜 웹은 아직까지도 안전하지 않을까요?&lt;/p&gt;
+&lt;p&gt;그 이유는 바로 보안 자체가 상당히 어렵고 까다로운 분야이기 때문입니다. 적절히 설정하고 사용하는 과정에 대한 진입장벽이 높고 **비용(= 보안을 달성하기 위한 인건비 등)**도 비쌉니다. 오늘 발표에서는 어떻게하면 그 과정을 쉽게할 수 있을지에 대해 나누고자 합니다.&lt;/p&gt;
+&lt;h3 id=&#34;secure-connection-requirements&#34;&gt;Secure Connection Requirements&lt;/h3&gt;
+&lt;p&gt;안전한 통신을 제대로 사용하기 위해서는 2가지 요구사항이 존재합니다.&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Encryption (scrambled bits)&lt;/li&gt;
+&lt;li&gt;Authentication (who am I talking to?)&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;첫번째는 암호화 입니다. 상대방에게 데이터를 전달할 때 &amp;ldquo;여기 당신이 원하는 데이터!&amp;ldquo;라고 직관적으로 주는 것이 아니라 &amp;ldquo;ㄴㅇ랴ㅐㅈ더갸ㅐㅈ갭ㄱㅂ&amp;quot;와 같이 암호화(난독화)를 하는 겁니다. 해석하기 어려운 난독화된 데이터를 원하는 상대에게 전송하기 때문에 중간에서 가로챈다해도 해석하는 것이 굉장히 어렵고 바로 이러한 부분이 보안으로 연결되는 겁니다.&lt;/p&gt;
+&lt;p&gt;두번째는 인증 입니다. 난독화된 암호문을 받았는데 적절한 해석방법도 모르고 누구랑 통신하는지도 모르면 해당 암호문을 제대로 해석할 수 없습니다. 이를 위해서는 특별한 인증과정이 별도로 필요하고, 그 인증과정을 통해 &amp;ldquo;상대방이 내가 통신하려는 사람이 맞구나!&amp;ldquo;하며 안심하고 통신할 수 있는 것입니다.&lt;/p&gt;
+&lt;h3 id=&#34;encryption-easy-ish&#34;&gt;Encryption (easy-ish)&lt;/h3&gt;
+&lt;p&gt;Just a software stack for public key and symmetric crypto that needs to be installed and configured. Most Web servers directly support it. Protect your private keys.&lt;/p&gt;
+&lt;p&gt;암호화 자체는 이미 널리 알려진 구현체가 많습니다. 대부분의 운영체제에서 자체 지원하고 있는 것들도 많죠. 어려운 것은 **&amp;ldquo;암호화된 데이터를 해석할 수 있는 아주 중요한 개인키를 어떻게 보호하느냐&amp;rdquo;**입니다.&lt;/p&gt;
+&lt;h3 id=&#34;authentication-via-ca-too-hard&#34;&gt;Authentication via CA (too hard)&lt;/h3&gt;
+&lt;p&gt;Certificate Authority issue the x.509 certificates required for SSL/TLS on the Web.&lt;/p&gt;
+&lt;p&gt;인증과정은 악몽과도 같습니다. 웹에서 인증을 구현하려면 인증서 관리국으로부터 인증서를 받아야 하는데요, 이는 기술을 잘 아는 것과 관계 없이 누구에게나 굉장히 복잡하고 번거롭습니다.&lt;/p&gt;
+&lt;h3 id=&#34;traditional-certificate-fun-인증서를-얻기-위한-전통적인-방법론-매우-길고-짜증나고-고된-방법&#34;&gt;Traditional Certificate Fun (인증서를 얻기 위한 전통적인 방법론, 매우 길고 짜증나고 고된 방법)&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Figure out you need a cert
+인증서가 필요할 때 우리가 고려해야하는 건 아래와 같습니다.&lt;/li&gt;
+&lt;li&gt;Try to figure out where to get a cert from
+&lt;strong&gt;1: 어디서 인증서를 발급 받아야 하는지를 파악합니다.&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;Figure out what kind of cert you need
+&lt;strong&gt;2: 어떤 종류의 인증서를 발급 받아야 하는지 파악합니다.&lt;/strong&gt;
+주의: 많은 인증기관들에서 제공하는 다양한 종류의 인증서를 훑어봐야되고 온갖 마케팅 광고에 노출되어 심신이 피폐해질 수 있습니다.&lt;/li&gt;
+&lt;li&gt;Figure out how to request a cert (learn what a CSR is and how you make one)
+&lt;strong&gt;3: 인증받고자 하는 인증기관에서는 여러분에게 CSR을 요구할 겁니다. CSR에 대해서도 알아야겠죠?&lt;/strong&gt;
+주의: CSR은 이해하는데 굉장히 오래걸리는 개념이고&amp;hellip; 이는 할 일이 언제나 많은 우리를 지치게 만드는 포인트입니다. 안 그래도 할 게 많은데&amp;hellip;&lt;/li&gt;
+&lt;li&gt;Go through painful manual verification process, maybe set up a new email address
+&lt;strong&gt;4: 수동으로 인증 절차를 거쳐야하는데&amp;hellip; 이메일 등도 별도로 설정해야 합니다.&lt;/strong&gt;
+주의: 매우 재미없고 의미없다고 느껴지는 과정이 될 수 있습니다.&lt;/li&gt;
+&lt;li&gt;Pay
+&lt;strong&gt;5: 인증기관에게 돈을 지불합니다.&lt;/strong&gt;
+개인으로 돈을 지불하는 건 상관없지만, 만약 여러분이 기업에서 일하는 개발자라면 어떠까요? 추가비용 지출을 위해 별도의 결재를 올려 승인을 받아야하고, 이 과정에 대해 별도의 설명을 해야하는 등&amp;hellip; 매우 귀찮은 일이 기다리고 있을 겁니다.&lt;/li&gt;
+&lt;li&gt;Figure out how to install your cert
+&lt;strong&gt;6: 서버에 인증서 설치하는 방법론도 공부하셔야합니다.&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;Remember to renew it on time
+&lt;strong&gt;7: 갱신기간이 되면 제때 갱신해주어야 합니다. 이것도 신경써주셔야 하는거죠.&lt;/strong&gt;
+관리포인트가 늘어났네요&amp;hellip; 맙소사.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;http2-sumer-2012&#34;&gt;HTTP/2, Sumer 2012&lt;/h3&gt;
+&lt;p&gt;HTTP/2 IETF WG debating requiring encryption. Major objection was that encryption was too hard or even impossible for many.&lt;/p&gt;
+&lt;p&gt;Josh Aas and Eric Rescorla decide we need to address this problem if the Web is ever going to achieve HTTPS Everywhere.&lt;/p&gt;
+&lt;p&gt;데이터를 암호화해서 보호하는 게 중요하다는 것에는 모두가 동의하지만, 현실적으로 웹을 이용하는 사람 모두가 HTTPS를 인지하고 사용하는 건 매우 어렵습니다. 논의되고 있는 HTTP/2의 보안 스펙은 TLS보안을 필수로 넣지 않는 쪽으로 논의되었다고 합니다. 실질적으로 모두가 TLS를 적용하는 데에는 너무나도 많은 비용이 들기 때문이죠. 올바른 방법론은 뻔히 있는데 현실적인 제약으로 그러지 못한다는 건 너무나도 슬픈 일입니다. 이런 문제들을 해결하기 위해 많은 고민을 거듭한 결과 아래와 같은 솔루션을 고안하게 되었습니다.&lt;/p&gt;
+&lt;h3 id=&#34;the-solution&#34;&gt;The Solution&lt;/h3&gt;
+&lt;p&gt;We needed a new CA. A lot of work, but nothing short of that would cut it.&lt;/p&gt;
+&lt;p&gt;Didn&amp;rsquo;t think we could get an existing CA to fully cooperate. Especially on the time scale we wanted. Also, didn&amp;rsquo;t want to be forever at the mercy of another CA.&lt;/p&gt;
+&lt;p&gt;바로 새로운 CA(인증기관)을 만드는 겁니다. 현존하는 인증기관들에게 협력을 구하는 것도 어려울 것 같고, 협력을 한다해도 그게 오래 지속될지도 모르는 일입니다. 인증기관의 선심, 도덕성 등에만 의존할 수는 없으니까요.&lt;/p&gt;
+&lt;h3 id=&#34;cornerstones-for-a-new-ca-새로운-인증기관을-위한-초석&#34;&gt;Cornerstones for a New CA (새로운 인증기관을 위한 초석)&lt;/h3&gt;
+&lt;p&gt;새로운 인증기관을 설립할 때 필요하다고 생각한 것들은 아래와 같습니다.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Automated&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;Ease of use, reliability, and scalability
+자동화로 인한 사용자 편의성이 향상(신뢰성과 확장성 또한 포함)되어야 합니다.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Free&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;Cost excludes, payment adds complexity&lt;/p&gt;
+&lt;p&gt;완전 무료로 이용가능해야 합니다. 결제하는 과정이 들어가는 건 복잡성만 더하니까요.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Transparent / Open&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;Essential for trust&lt;/p&gt;
+&lt;p&gt;투명성과 신뢰성이 있어야 합니다. 참고로 현재 운영되는 CA들은 이용자들에게 모든 걸 세세하게 투명하게 공개하지는 않습니다.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Global&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;The secure Web is for everyone&lt;/p&gt;
+&lt;p&gt;안전한 웹 경험, 인터넷 경험은 소수의 것이 아닌 우리 모두의 것이 되어야 한다고 생각합니다.&lt;/p&gt;
+&lt;h3 id=&#34;building-a-foundation&#34;&gt;Building a Foundation&lt;/h3&gt;
+&lt;p&gt;Spent ~2 years (2013-2014) clearing schedules, creating an entity, finding initial sponsors, and making a plan for getting trusted (a deal with an existing CA).&lt;/p&gt;
+&lt;p&gt;위 목표를 달성하기 위해 2년 정도를 할애해서 스폰서들을 구했습니다. CA로서 신뢰를 얻으려면 자기 자신에 대해 개인키를 생성하고 해당 키가 정합한 것인지를 증명하는 과정을 거쳐야하는데, 이를 위해서는 모든 브라우저들과 세상에 존재하는 핵심 서비스들에 전파되고 알려져야합니다. 우리는 그러기 위한 시간이 약 5~10년 정도는 걸릴 것이라 생각했습니다. 5~10년은 너무나도 긴 시간이므로 우리는 어쩔 수 없이 스폰서로 현존하는 CA를 두어 우리가 CA로서 적합하다는 것을 증명하는데 힘을 실었습니다.&lt;/p&gt;
+&lt;h3 id=&#34;internet-security-research-group&#34;&gt;Internet Security Research Group&lt;/h3&gt;
+&lt;p&gt;ISRG is the entity behind Let&amp;rsquo;s Encrypt.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Founded May 2013&lt;/li&gt;
+&lt;li&gt;IRS 501(c)(3) status granted June 2014&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Mission is to reduce financial, technological, and education barriers to secure communication over the Internet.&lt;/p&gt;
+&lt;p&gt;인터넷 연구 그룹(ISRG)으로부터의 지원도 받고 있습니다. 연구 그룹의 미션은 모든 사람이 인터넷에서의 안전한 통신을 누릴 수 있게끔 경제적 장벽, 교육적 장벽, 기술적 장벽을 허무는 것입니다.&lt;/p&gt;
+&lt;h3 id=&#34;the-linux-foundation&#34;&gt;The Linux Foundation&lt;/h3&gt;
+&lt;p&gt;Let&amp;rsquo;s Encrypt became an LF collaborative project in April of 2015.&lt;/p&gt;
+&lt;p&gt;The Linux Foundation&amp;rsquo;s organizational development support has allowed us to focus on our technical operations.&lt;/p&gt;
+&lt;p&gt;리눅스 재단의 지원 또한 받을 수 있게 되었고 이제는 공동 프로젝트로 진행하게 되었습니다.&lt;/p&gt;
+&lt;h3 id=&#34;building-lets-encrypt&#34;&gt;Building Let&amp;rsquo;s Encrypt&lt;/h3&gt;
+&lt;p&gt;Announced to the public in November 2014. Work still to complete:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Creating CA policy&lt;/li&gt;
+&lt;li&gt;Writing software&lt;/li&gt;
+&lt;li&gt;Ordering and installing hardware&lt;/li&gt;
+&lt;li&gt;Configuring environment&lt;/li&gt;
+&lt;li&gt;Hiring a team&lt;/li&gt;
+&lt;li&gt;Making things as secure as possible&lt;/li&gt;
+&lt;li&gt;Ensuring compliance, going thorugh audits&lt;/li&gt;
+&lt;li&gt;Getting more sponsors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;how-lets-encrypt-works&#34;&gt;How Let&amp;rsquo;s Encrypt Works&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;ACME Protocol, &amp;ldquo;DHCP for Certificates&amp;rdquo;
+ACME라는 자동으로 인증서를 받을 수 있는 프로토콜을 사용합니다.&lt;/li&gt;
+&lt;li&gt;Boulder CA software implements ACME, running on Let&amp;rsquo;s Encrypt infrastructure
+서버사이드 프로토콜로 깃허브에서 바로 확인해볼 수 있습니다.&lt;/li&gt;
+&lt;li&gt;Clients request certificates from Let&amp;rsquo;s Encrypt via ACME&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;api-infrastructure&#34;&gt;API Infrastructure&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;~42 rack units of hardware between two highly secure sites&lt;/li&gt;
+&lt;li&gt;HSMs, compute, storage, switches, firewalls&lt;/li&gt;
+&lt;li&gt;Lots of physical and logical redundancy&lt;/li&gt;
+&lt;li&gt;Linux is our primary operating system&lt;/li&gt;
+&lt;li&gt;Heavy use of config mgmt, almost everything automated&lt;/li&gt;
+&lt;li&gt;API and OCSP go through Akamai&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;types-of-certificates&#34;&gt;Types of Certificates&lt;/h3&gt;
+&lt;p&gt;인증서의 종류는 다음과 같습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Domain Validation (DV):&lt;/strong&gt; asserts control of a domain (what Let&amp;rsquo;s Encrypt does)
+Sorts control of a domain and ties that to a public key, so basically says &amp;ldquo;this is the public key for the domain that you&amp;rsquo;re trying to talk to you.&amp;rdquo;&lt;/p&gt;
+&lt;p&gt;If you encrypt with this public key, the idea is that this domain is the only domain that I&amp;rsquo;ll be able to decrypt.
+도메인을 통제하고 있다는 것을 공개키를 통해 입증하는 절차 입니다. &amp;ldquo;당신이 소통하고 있는 도메인에 대한 공개키가 바로 여깄어!&amp;ldquo;라고 말하는 방법으로, 여러분이 공개키로 암호화를 하면 이 도메인은 유일하게 여러분 본인이 복호화할 수 있는 것이죠.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Organization Validation (OV):&lt;/strong&gt; asserts control of a domain as well as basic organizational vetting
+DV랑 비슷하지만 name of an entity를 포함한다는 점이 다릅니다.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Extended Validation (EV):&lt;/strong&gt; asserts control of a domain as well as extended organizational vetting
+OV랑 비슷하고 entity에 대한 더 많은 정보를 요구합니다.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;LE는 오직 DV만 발행하는데, DV만이 유일하게 자동화될 수 있기 때문입니다. 조직차원의 엔티티를 자동으로 증명할 수 있는 방법은 없습니다. 그러나 ACME 프로토콜을 사용하면 도메인에 대한 통제권을 확인하는 과정을 자동화할 수 있습니다. 자동화할 수 있다는 건, 수많은 DV를 발행할 수 있다는 뜻이기도 합니다. 우리가 서비스 스케일을 감당할 수 있는 건 DV 뿐입니다.&lt;/p&gt;
+&lt;h3 id=&#34;acme-issuance-overview&#34;&gt;ACME Issuance Overview&lt;/h3&gt;
+&lt;p&gt;ACME 인증 과정을 대략적으로 설명하면 다음과 같습니다.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2019-12-07-lets-encrypt-speech/0.png&#34; alt=&#34;ACME&#34;&gt;&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;먼저 클라이언트가 Lets Encrypt 서버에 &amp;ldquo;인증서 발행해주세요!&amp;rdquo; 요청을 합니다.&lt;/li&gt;
+&lt;li&gt;&amp;ldquo;You need to demonstrate these things&amp;rdquo;
+&amp;ldquo;You need to complete these challenges in order to get a cert&amp;rdquo;
+요청을 받은 서버는 클라이언트에게 도전과제들을 줍니다. 인증서를 얻기 위해서 클라이언트는 서버가 주는 과제들을 잘 수행해야 하죠.&lt;/li&gt;
+&lt;li&gt;클라이언트는 도전과제들을 마친 뒤에 Lets Encrypt 서버에게 &amp;ldquo;과제 다 마쳤으니 오셔서 검사하셔도 됩니다.&amp;ldquo;라고 메시지를 보냅니다.&lt;/li&gt;
+&lt;li&gt;LE서버는  &amp;ldquo;오케이, 클라이언트. 부여한 과제들이 잘 수행 되었는지 확인해볼게요.&amp;rdquo;&lt;/li&gt;
+&lt;li&gt;확인이 잘 되었다면 인증서를 발행해주고 그게 아니라면 요청을 거절합니다.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id=&#34;acme-challenge-types&#34;&gt;ACME Challenge Types&lt;/h3&gt;
+&lt;p&gt;도전과제들로는 아래와 같은 과제들이 주어집니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;HTTP: Put a file on your web server&lt;/strong&gt;
+This is where we give you a special file we tell you to put it at a special place or on this particular path on your web server and then we pick a path that is not likely to be in use for other things and the file is not a file that&amp;rsquo;s likely to be already on your web server anywhere, so if  you demonstrate to us that you can place this special file at a particular predetermined location in your server that&amp;rsquo;s a demonstration of control.
+웹 서버의 특정 위치에 파일을 서비스할 것을 지시합니다. 그 위치는 웹서버에서 잘 사용되지 않을 만한 위치로 선정하고 파일 이름은 웹 서버에 기존에 존재하는 파일 이름으로 상상할 수 없는 이름을 지정하게 됩니다. 한 마디로 &amp;ldquo;우리가 지정한 위치에 우리가 지명한 파일 이름으로 파일을 생성하세요&amp;quot;라는 과제인 것이고, 그걸 해당 도메인이 서비스 되는 웹서버에 위치한다면, 그 도메인을 제어하고 있다고 인정하는 것이죠.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;DVSNI: Provision a virtual host at your domain&amp;rsquo;s IP address&lt;/strong&gt;
+we ask you to essentially provision a virtual host that your domain IP address in such a way that it demonstartes proper control.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;가장 적게 쓰이는 옵션이지만 특정 상황에서는 꽤 괜찮은 도전 과제입니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;DNS: Provision a DNS record for your domain&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;The thrid way is DNS validation and it&amp;rsquo;s a lot like HTTP validation but instead of putting a file on your server you can think of it as taking that file and sticking it in a DNS record because if you can control if you can demontsrate control of DNS for your domain then we&amp;rsquo;re gonna with just assuming that you can contorl the server because you can point DNS wherever you want. DNS is fairly popular and I believe it&amp;rsquo;s growing becase DNS is the only challenge that dosen&amp;rsquo;t require us to actually contact your server for verification so sometime people for example I have an internal web server that&amp;rsquo;s not on the public web but they have a publicly resolvable DNS record they can use the DNS challenge and prove control over the server without having Let&amp;rsquo;s encrypt actually go back to ther server and talk to it to check for a file. DNS is also used a lot for devices which we&amp;rsquo;ll talk about a little later.
+DNS 검증은 HTTP 검증 방식과 유사하지만 특정 파일을 웹서버에 두는 것이 아니라, DNS 레코드에 해당 그 파일 내용을 기록해두는 검증 방식입니다.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;clients&#34;&gt;Clients&lt;/h3&gt;
+&lt;p&gt;Basically 3 categories of clients:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Simple (drop a cert in the current dir)&lt;/li&gt;
+&lt;li&gt;Full-featured (configure server for you)&lt;/li&gt;
+&lt;li&gt;Built-in (web server just does it)&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Built-in is the best client expereience!&lt;/p&gt;
+&lt;h3 id=&#34;devices&#34;&gt;Devices&lt;/h3&gt;
+&lt;p&gt;Many of our cerificates are going to devices for management interfaces.&lt;/p&gt;
+&lt;p&gt;Synology is a great example. One click and your NAS system is using publicly trusted PKI for management.&lt;/p&gt;
+&lt;p&gt;Have been talking to other device makers, routers in particular, a lot more of this is coming.&lt;/p&gt;
+&lt;h3 id=&#34;90-day-cert-lifetimes&#34;&gt;90 Day Cert Lifetimes&lt;/h3&gt;
+&lt;p&gt;Shorter lifetimes are important for security.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Encourage automation&lt;/li&gt;
+&lt;li&gt;Limit damage from key compromise or mis-issuance (revocation dosen&amp;rsquo;t work)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Short-lived certs some day? Potentially a nice solution for revocation.&lt;/p&gt;
+&lt;h3 id=&#34;phishing-and-malware&#34;&gt;Phishing and Malware&lt;/h3&gt;
+&lt;p&gt;CAs are not the right place to police phishing and malware.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Don&amp;rsquo;t have the data&lt;/li&gt;
+&lt;li&gt;Can&amp;rsquo;t respond fast enough&lt;/li&gt;
+&lt;li&gt;If HTTTPS becomes existential, we don&amp;rsquo;t want to be censors&lt;/li&gt;
+&lt;li&gt;Revocation is ineffective&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Read our full blog post about this.&lt;/p&gt;
+&lt;p&gt;구글에서 운영하는 위협데이터베이스와 비교하여 적절치 않은 도메인이라 판단되면 해당 도메인에 대해 인증서는 발행해주지 않습니다.&lt;/p&gt;
+&lt;h3 id=&#34;certificate-transparency&#34;&gt;Certificate Transparency&lt;/h3&gt;
+&lt;p&gt;CT is an important part of improving the PKI ecosystem&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>하나의 서버에서 여러 유저가 협업 가능한 무료 파이썬 개발 환경 구축하기 (Anaconda &#43; JupyterNotebook)</title>
+      <link>aeharvlee.github.io/posts/2019-12-07-setup-multiuser-anaconda-envrionment/</link>
+      <pubDate>Sat, 07 Dec 2019 00:00:00 +0000</pubDate>
+      
+      <guid>aeharvlee.github.io/posts/2019-12-07-setup-multiuser-anaconda-envrionment/</guid>
+      <description>&lt;p&gt;&lt;strong&gt;서버 정보:&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;OS:&lt;/strong&gt; CentOS Linux release 7.6.1810&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Anaconda:&lt;/strong&gt; 4.7.11
+&lt;ul&gt;
+&lt;li&gt;설치된 경로: &lt;code&gt;/opt/anaconda3&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Account&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;서버 내에 root를 함한 유저가 총 5명이 있다고 가정합니다.&lt;/li&gt;
+&lt;li&gt;표기 정보: &lt;code&gt;&amp;lt;user&amp;gt;&lt;/code&gt;:&lt;code&gt;&amp;lt;group&amp;gt;&lt;/code&gt;
+&lt;ul&gt;
+&lt;li&gt;root&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;anaconda&lt;/code&gt;:&lt;code&gt;anaconda&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;jihye&lt;/code&gt;:&lt;code&gt;pydev&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;swjung&lt;/code&gt;:&lt;code&gt;pydev&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;hwlee&lt;/code&gt;:&lt;code&gt;pydev&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;대상 독자:&lt;/strong&gt; 하나의 서버에 여러 명의 동료들과 협업할 수 있는 파이썬 개발환경 구축이 필요한 독자.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;예시: 파이썬을 개발하는 모임 혹은 단체에서 클라우드 서비스에서 서버를 하나 구입하고(예를 들면 AWS의 EC2 instance), 그 서버로 모임 내의 모든 유저가 자유롭게 개발하고 공유할 수 있는 환경 구축을 원할 때 사용할 수 있는 환경을 만들고 싶을 때 본 포스팅을 참고하시면 도움이 될겁니다.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id=&#34;1-architecture-overview&#34;&gt;1. Architecture Overview&lt;/h2&gt;
+&lt;p&gt;아나콘다를 설치할 때 특정 유저의 하위 디렉토리에 두는 것이 아니라 모든 유저가 사용할 수 있는 공통의 위치에 두어야 합니다. 본 포스팅에서와 같이 &lt;code&gt;/opt/anaconda3&lt;/code&gt;와 같은 곳에 설치해주시면 좋습니다.&lt;/p&gt;
+&lt;p&gt;모든 유저들은 &lt;code&gt;/opt/anaconda3&lt;/code&gt;에 있는 아나콘다 바이너리를 공유하고, 개인 작업 환경은 분리하여 구성합니다. 아래 그림을 보면 각 유저별로 &lt;code&gt;/home/&amp;lt;user&amp;gt;/.conda/envs/&lt;/code&gt; 아래에 자신만의 환경이 만들어져 있는 걸 확인해보실 수 있습니다.&lt;/p&gt;
+&lt;p&gt;향후 환경을 공유하고 싶다면, 공유를 원하는 아나콘도 환경 파일을 &lt;code&gt;.yml&lt;/code&gt; 파일로 추출한뒤 아나콘다 클라우드에서 공유하거나 아나콘다 관련 모든 환경을 관리하는 &lt;code&gt;anaconda&lt;/code&gt; 계정에서 해당 &lt;code&gt;.yml&lt;/code&gt; 파일을 import하여 모든 유저가 사용가능하게 설정할 수도 있습니다.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2019-12-07-setup-multiuser-anaconda-envrionment/0.png&#34; alt=&#34;devops_python&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;2-install-anacodna&#34;&gt;2. Install Anacodna&lt;/h2&gt;
+&lt;p&gt;아나콘다 공식 다운로드 홈페이지에 가서 CLI-installer에 해당하는 링크를 복사하여 &lt;code&gt;curl &amp;lt;install_script_link&amp;gt;&lt;/code&gt; 처럼 입력하여 서버 쉘에서 작업해주는 것으로 설치과정은 시작됩니다. 아래 과정을 참고하여 설치해보시면 됩니다.&lt;/p&gt;
+&lt;p&gt;설치 과정은 &lt;code&gt;root&lt;/code&gt; 계정으로 진행하도록 합니다.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;root/$ curl https://repo.anaconda.com/archive/Anaconda3-2019.07-Linux-x86_64.sh --output Anaconda3-2019.07-Linux-x86_64.sh
+root/$ chmod +x Anaconda3-2019.07-Linux-x86_64.sh
+root/$ ./Anaconda3-2019.07-Linux-x86_64.sh
+root/$ adduser anaconda &lt;span style=&#34;color:#75715e&#34;&gt;# 아나콘다 관련 작업은 이 계정이 담당합니다.&lt;/span&gt;
+&lt;span style=&#34;color:#75715e&#34;&gt;# 설치 과정 진행중 ...&lt;/span&gt;
+&lt;span style=&#34;color:#75715e&#34;&gt;# 진행 중 어떤 위치에 설치할 것인지를 묻는 질의가 나오는데 /opt/anaconda3처럼 /opt 하위 경로에 설정하도록 합니다.&lt;/span&gt;
+&lt;span style=&#34;color:#75715e&#34;&gt;# 설치가 끝나면 /root/.bashrc에 아나콘다 관련 스크립트가 추가된다.&lt;/span&gt;
+modified      /root/.bashrc
+
+&lt;span style=&#34;color:#f92672&#34;&gt;==&lt;/span&gt;&amp;gt; For changes to take effect, close and re-open your current shell. &amp;lt;&lt;span style=&#34;color:#f92672&#34;&gt;==&lt;/span&gt;
+
+If you&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;d prefer that conda&amp;#39;&lt;/span&gt;s base environment not be activated on startup,
+   set the auto_activate_base parameter to false:
+
+conda config --set auto_activate_base false
+
+Thank you &lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt; installing Anaconda3!
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;21-anaconda유저에게-관리-권한-부여&#34;&gt;2.1 anaconda유저에게 관리 권한 부여&lt;/h3&gt;
+&lt;p&gt;공통으로 사용하는 서버이다 보니 관리자 계정 anaconda를 별도로 두고 &lt;code&gt;/opt/anaconda3&lt;/code&gt;디렉토리 사용 권한을 전적으로 위임한다.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;color:#75715e&#34;&gt;# 아나콘다 관련 권한은 아나콘다 유저에게 부여합니다.&lt;/span&gt;
+root/$ chown -R anaconda:anaconda /opt/anaconda3
+&lt;span style=&#34;color:#75715e&#34;&gt;# webdev 계정을 아나콘다 그룹에 추가합니다.&lt;/span&gt;
+usermod -a -G anaconda webdev
+
+&lt;span style=&#34;color:#75715e&#34;&gt;# anaconda계정에서 작업합니다.&lt;/span&gt;
+root/$ su - anaconda
+&lt;span style=&#34;color:#75715e&#34;&gt;# 쓰기 권한은 아나콘다 유저에게만 할당해주고 나머지 유저들은 읽고 실행만할 수 있게끔 설정합니다.&lt;/span&gt;
+/home/anaconda/$ chmod -R go-w /opt/anaconda3/
+/home/anaconda/$ chmod -R go+rX /opt/anaconda3/
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;22-nb_conda--ipykernel&#34;&gt;2.2 nb_conda + ipykernel&lt;/h3&gt;
+&lt;p&gt;nb_conda와 ipykernel은 아나콘다에서 생성한 환경을 Jupyer Notebook 인터페이스에서 확인하고 작업할 수 있게끔 도와주는 라이브러리들입니다.&lt;/p&gt;
+&lt;p&gt;base 환경에서 다음과 같이 &lt;code&gt;nb_conda&lt;/code&gt; 를 설치해주고 이후 새로운 환경을 생성할 때 &lt;code&gt;ipykernel&lt;/code&gt; 라이브러리를 항시 포함해주도록 설정하시면 됩니다.&lt;/p&gt;
+&lt;p&gt;지금까지의 설치 과정을 잘 이행하셨다면, anaconda계정에서 생성하는 환경은 모든 유저들이 공유할 수 있게 설정이 되셨을 겁니다. 만약 anaconda 계정에서 환경을 생성해줄 때는 환경 이름에  &lt;code&gt;shared_&lt;/code&gt; prefix를 추가하셔서 구분해주시는 것이 좋습니다. 혼선 방지를 위해!&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;color:#75715e&#34;&gt;# 아나콘다 파이썬 개발환경 기본 설정&lt;/span&gt;
+&lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;base&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; /home/anaconda/$ conda install nb_conda &lt;span style=&#34;color:#75715e&#34;&gt;# 아나콘다에서 생성한 환경을 주피터 노트북에서 확인하고 실행할 수 있게 해주는 라이브러리인 nb_conda를 base 환경에 설치해줍니다.&lt;/span&gt;
+&lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;base&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; /home/anaconda/$ conda create --name shared_env_python36 python&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;3.6 ipykernel
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;여기까지 진행했다면 아나콘다 관련 기본 설정은 모두 마치신 겁니다.&lt;/p&gt;
+&lt;h2 id=&#34;3-setup-jupyter-notebook-for-each-user&#34;&gt;3. Setup Jupyter Notebook For Each User&lt;/h2&gt;
+&lt;p&gt;anaconda계정 포함 각 유저별로 한 번만 설정해주는 설정입니다. 서버에 있는 여러 유저 중 &lt;code&gt;hwlee&lt;/code&gt;계정에서 설정하는 시나리오를 살펴보도록 하겠습니다.&lt;/p&gt;
+&lt;h3 id=&#34;31-create-config--generate-password-hash&#34;&gt;3.1 Create config &amp;amp; generate password hash&lt;/h3&gt;
+&lt;p&gt;Jupyter Notebook은 서버-클라이언트 구조의 웹 서버 애플리케이션입니다. 브라우저에서 실행되며 기본적인 로그인 기능도 갖추고 있어요.&lt;/p&gt;
+&lt;p&gt;아래 설명은 Jupyer Notebook Server를 운영할 때 각종 설정값을 조절할 수 있는 설정 파일과 로그인할 때 사용할 비밀번호를 설정하는 것에 대한 가이드 입니다.&lt;/p&gt;
+&lt;p&gt;비밀번호를 입력하고 로그인하면 서버에서는 해당 비밀번호 값을 그대로 비교하는 것이 아닌 비밀번호의 해시와 비교하게 됩니다.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;이는 매우 널리 사용되고 있는 구조로, 유저의 비밀번호를 그대로 저장하는 온라인 서비스는 거의 없습니다. 개인정보 보호는 매우 중요하기 때문이죠.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-python&#34; data-lang=&#34;python&#34;&gt;&lt;span style=&#34;color:#75715e&#34;&gt;# This command will create a default Jupyter Notebook configruation file: /home/hwlee/.jupyter/jupyter_notebook_config.py&lt;/span&gt;
+(base) hwlee&lt;span style=&#34;color:#a6e22e&#34;&gt;@Cloud4SECaaS&lt;/span&gt;:&lt;span style=&#34;color:#f92672&#34;&gt;~&lt;/span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;$&lt;/span&gt; jupyter notebook &lt;span style=&#34;color:#f92672&#34;&gt;--&lt;/span&gt;generate&lt;span style=&#34;color:#f92672&#34;&gt;-&lt;/span&gt;config
+
+&lt;span style=&#34;color:#75715e&#34;&gt;# For security purpose, use the following commands to setup a password for JupyterNotebook server:&lt;/span&gt;
+(base) hwlee&lt;span style=&#34;color:#a6e22e&#34;&gt;@Cloud4SECaaS&lt;/span&gt;:&lt;span style=&#34;color:#f92672&#34;&gt;~&lt;/span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;$&lt;/span&gt; python
+Python &lt;span style=&#34;color:#ae81ff&#34;&gt;3.7&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;3&lt;/span&gt; (default, Mar &lt;span style=&#34;color:#ae81ff&#34;&gt;27&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;2019&lt;/span&gt;, &lt;span style=&#34;color:#ae81ff&#34;&gt;22&lt;/span&gt;:&lt;span style=&#34;color:#ae81ff&#34;&gt;11&lt;/span&gt;:&lt;span style=&#34;color:#ae81ff&#34;&gt;17&lt;/span&gt;)
+[GCC &lt;span style=&#34;color:#ae81ff&#34;&gt;7.3&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;] :: Anaconda, Inc&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt; on linux
+Type &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;help&amp;#34;&lt;/span&gt;, &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;copyright&amp;#34;&lt;/span&gt;, &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;credits&amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;or&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;license&amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt; more information&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;
+&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;from&lt;/span&gt; notebook.auth &lt;span style=&#34;color:#f92672&#34;&gt;import&lt;/span&gt; passwd
+&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; passwd()
+Enter password: hwlee
+Verify password: hwlee
+&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;sha1:a487d4efd689:6660d78a1515ae2313544fdc5432e44ae51162ab&amp;#39;&lt;/span&gt;
+&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; Ctrl&lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt;c
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;32-https-통신을-위한-설정&#34;&gt;3.2 HTTPS 통신을 위한 설정&lt;/h3&gt;
+&lt;p&gt;Jupyter Notebook 서버와 HTTPS로 통신하기 위해 인증서를 발행합니다.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;base&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; hwlee@Cloud4SECaaS:~$ openssl req -x509 -nodes -days &lt;span style=&#34;color:#ae81ff&#34;&gt;365&lt;/span&gt; -newkey rsa:4096 -keyout jkey.key -out jcert.pem
+Generating a RSA private key
+.......................................................++++
+.........++++
+writing new private key to &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;jkey.key&amp;#39;&lt;/span&gt;
+-----
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;.&amp;#39;&lt;/span&gt;, the field will be left blank.
+----- &lt;span style=&#34;color:#75715e&#34;&gt;# 아래의 세부 사항은 귀찮으면 생략하셔도 크게 문제 없습니다.&lt;/span&gt;
+Country Name &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;2&lt;/span&gt; letter code&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;AU&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;:KR
+State or Province Name &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;full name&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;Some-State&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;:
+Locality Name &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;eg, city&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;[]&lt;/span&gt;:Seoul
+Organization Name &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;eg, company&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;Internet Widgits Pty Ltd&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;:Cloudbric
+Organizational Unit Name &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;eg, section&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;[]&lt;/span&gt;:development
+Common Name &lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;e.g. server FQDN or YOUR name&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;[]&lt;/span&gt;:cloudbric_hwlee
+Email Address &lt;span style=&#34;color:#f92672&#34;&gt;[]&lt;/span&gt;:cloudbric@cloudbric.com
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;33-통신-포트-설정&#34;&gt;3.3 통신 포트 설정&lt;/h3&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;color:#f92672&#34;&gt;(&lt;/span&gt;base&lt;span style=&#34;color:#f92672&#34;&gt;)&lt;/span&gt; hwlee@Cloud4SECaaS:~$ vi .jupyter/jupyter_notebook_config.py
+&lt;span style=&#34;color:#75715e&#34;&gt;# Set options for certfile, ip, password, and toggle off&lt;/span&gt;
+&lt;span style=&#34;color:#75715e&#34;&gt;# browser auto-opening&lt;/span&gt;
+c.NotebookApp.certfile &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;/home/hwlee/jcert.pem&amp;#39;&lt;/span&gt;
+c.NotebookApp.keyfile &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;/home/hwlee/jkey.key&amp;#39;&lt;/span&gt;
+&lt;span style=&#34;color:#75715e&#34;&gt;# Set ip to &amp;#39;*&amp;#39; to bind on all interfaces (ips) for the public server&lt;/span&gt;
+c.NotebookApp.ip &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;*&amp;#39;&lt;/span&gt;
+c.NotebookApp.password &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;sha1:a487d4efd689:6660d78a1515ae2313544fdc5432e44ae51162ab&amp;#39;&lt;/span&gt;
+c.NotebookApp.open_browser &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;False&amp;#39;&lt;/span&gt;
+
+&lt;span style=&#34;color:#75715e&#34;&gt;# 각 유저의 .jupyter/jupyter_notebook_config.py의 port 부분을 확인해서 사용되지 않는 포트를 지정하도록 합니다. 현재 포트 사용 현황은 다음과 같습니다.&lt;/span&gt;
+&lt;span style=&#34;color:#75715e&#34;&gt;# port | user_name&lt;/span&gt;
+&lt;span style=&#34;color:#75715e&#34;&gt;# 9999: anaconda&lt;/span&gt;
+&lt;span style=&#34;color:#75715e&#34;&gt;# 9998: hwlee&lt;/span&gt;
+&lt;span style=&#34;color:#75715e&#34;&gt;# 9997: jihye&lt;/span&gt;
+&lt;span style=&#34;color:#75715e&#34;&gt;# 9996: swjung&lt;/span&gt;
+&lt;span style=&#34;color:#75715e&#34;&gt;# 9995: &amp;lt;None&amp;gt;&lt;/span&gt;
+c.NotebookApp.port &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;9998&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;포트 번호가 중복되지 않게 각 유저별로 다른 포트를 설정해둡니다.&lt;/p&gt;
+&lt;h2 id=&#34;4-run-jupyter-notebook&#34;&gt;4. Run Jupyter Notebook&lt;/h2&gt;
+&lt;p&gt;설정이 끝난 이후 Jupyer Notebook Server를 실행하고 접속해봅니다. 처음 접속할 때 경고창이 나온다면 그대로 진행을 하면 됩니다.&lt;/p&gt;
+&lt;p&gt;New 버튼을 눌렀을 때 생성한 아나콘다 환경들이 잘 보이는 것을 확인할 수 있고 각 환경별로 작업할 수 있습니다.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;aeharvlee.github.io/images/2019-12-07-setup-multiuser-anaconda-envrionment/1.png&#34; alt=&#34;juptyter_notebook&#34;&gt;&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

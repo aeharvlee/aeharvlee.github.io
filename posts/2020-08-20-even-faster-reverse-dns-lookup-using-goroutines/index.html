@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+
+
+<html lang="ko-kr" data-theme="">
+<head>
+    
+        
+<meta charset="utf-8">
+<meta name="HandheldFriendly" content="True">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer-when-downgrade">
+
+<title>Reverse DNS Lookup Concurrently with Go - Road to Architect</title>
+<meta name="description" content="">
+
+<link rel="icon" type="image/x-icon" href="aeharvlee.github.io/favicon.ico">
+<link rel="apple-touch-icon-precomposed" href="aeharvlee.github.io/favicon.png">
+
+
+
+    
+
+
+
+
+
+    
+    
+    
+
+    
+        <link rel="stylesheet" href="/aeharvlee.github.io/css/style.6155b6d8eded05b985178f56a637943b3e7fcfccc913d9c656bbebce7c91cc6b.css" integrity="sha256-YVW22O3tBbmFF49WpjeUOz5/z8zJE9nGVrvrznyRzGs=">
+    
+
+
+
+
+
+    
+
+
+
+
+
+    
+        <link rel="stylesheet" href="aeharvlee.github.io/css/my.css?rnd=1607521671">
+    
+
+
+
+
+    
+
+
+
+
+
+    
+        <script src="aeharvlee.github.io/js/main.js?rnd=1607521671" type="text/javascript" charset="utf-8"></script>
+    
+
+
+<meta property="og:title" content="Reverse DNS Lookup Concurrently with Go" />
+<meta property="og:description" content="Go Routine을 활용하여 대량의 아이피에 대해 Reverse DNS Lookup을 효과적으로 처리한 사례를 공유드립니다.
+Image Source: https://en.wikipedia.org/wiki/Gopher
+Verify Good Bot 자세한 요구사항을 말씀드리긴 어렵지만, 보유하고 있는 대량의 아이피 주소에 대해 각 아이피가 Good Bot(구글 봇, 애플 봇, 마이크로소프트 봇 등)인지를 확인하는 작업이 필요했습니다. 그것도 빠르게..! 🏇 처리해야하는 상황입니다.
+Good Bot인지를 검증하는 작업은 생각보다 심플한데요, 해당 아이피 주소에 대해 reverse DNS lookup을 해주면 됩니다. 일반적으로 잘 알려져 있는 봇들은 DNS에 자신의 정보를 등록해두기 때문입니다." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="aeharvlee.github.io/posts/2020-08-20-even-faster-reverse-dns-lookup-using-goroutines/" />
+<meta property="og:image" content="aeharvlee.github.io/images/og-featured.png"/>
+<meta property="article:published_time" content="2020-08-20T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-08-20T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="aeharvlee.github.io/images/og-featured.png"/>
+
+<meta name="twitter:title" content="Reverse DNS Lookup Concurrently with Go"/>
+<meta name="twitter:description" content="Go Routine을 활용하여 대량의 아이피에 대해 Reverse DNS Lookup을 효과적으로 처리한 사례를 공유드립니다.
+Image Source: https://en.wikipedia.org/wiki/Gopher
+Verify Good Bot 자세한 요구사항을 말씀드리긴 어렵지만, 보유하고 있는 대량의 아이피 주소에 대해 각 아이피가 Good Bot(구글 봇, 애플 봇, 마이크로소프트 봇 등)인지를 확인하는 작업이 필요했습니다. 그것도 빠르게..! 🏇 처리해야하는 상황입니다.
+Good Bot인지를 검증하는 작업은 생각보다 심플한데요, 해당 아이피 주소에 대해 reverse DNS lookup을 해주면 됩니다. 일반적으로 잘 알려져 있는 봇들은 DNS에 자신의 정보를 등록해두기 때문입니다."/>
+
+
+
+
+
+
+
+
+
+    
+</head>
+<body>
+    <a class="skip-main" href="#main">Skip to main content</a>
+    <div class="container">
+        <header class="common-header"> 
+            
+                <h1 class="site-title">
+    <a href="/aeharvlee.github.io">Road to Architect</a>
+</h1>
+
+    <nav>
+        
+        
+        <a class="" href="aeharvlee.github.io/aeharvlee.github.io/posts/" title="Archive">Archive</a>
+        
+    </nav>
+
+
+            
+        </header>
+        <main id="main" tabindex="-1"> 
+            
+    
+    
+    <article class="post">
+        <header class="post-header">
+            <h1 class="post-title">Reverse DNS Lookup Concurrently with Go</h1>
+        </header>
+        <div class="content">
+            <p>Go Routine을 활용하여 대량의 아이피에 대해 Reverse DNS Lookup을 효과적으로 처리한 사례를 공유드립니다.</p>
+<p><img src="/images/2020-08-20-even-faster-reverse-dns-lookup-using-goroutines/0.png" alt="gopher"></p>
+<p>Image Source: <a href="https://en.wikipedia.org/wiki/Gopher">https://en.wikipedia.org/wiki/Gopher</a></p>
+<h2 id="verify-good-bot">Verify Good Bot</h2>
+<p>자세한 요구사항을 말씀드리긴 어렵지만, 보유하고 있는 <strong>대량의 아이피 주소에 대해 각 아이피가 Good Bot</strong>(구글 봇, 애플 봇, 마이크로소프트 봇 등)<strong>인지를 확인하는 작업이 필요했습니다.</strong> 그것도 빠르게..! 🏇 처리해야하는 상황입니다.</p>
+<p>Good Bot인지를 검증하는 작업은 생각보다 심플한데요, 해당 아이피 주소에 대해 <strong>reverse DNS lookup</strong>을 해주면 됩니다. 일반적으로 잘 알려져 있는 봇들은 <!-- raw HTML omitted -->DNS에 자신의 정보를 등록해두기 때문<!-- raw HTML omitted -->입니다. 구글에서 이에 대해 작성한 <a href="https://support.google.com/webmasters/answer/80553?hl=en">Verifying Googlebot</a> 가이드가 있어요! 😉</p>
+<p>오케이! 그렇다면 해야하는 작업은 심플하네요. <strong>각 아이피에 대해 Reverse DNS Lookup</strong>을 하면 됩니다. ✅ Go언어로 해당 작업내용을 어떻게 작성했는지 지금부터 같이 보시겠습니다.</p>
+<h2 id="linear-reverse-dns-lookup--">Linear Reverse DNS Lookup  😫</h2>
+<p>가장 먼저 해본 작업은 선형 룩업입니다. For문으로 아이피 리스트에 대해 Reverse DNS Lookup을 처리하는 것이죠. 이렇게 하면 과연 우리가 원하는 시간 내에 원하는 작업을 할 수 있을까요?</p>
+<p>이렇게 선형으로 처리하면 처리는 되지만, 원하는 시간 내에 빠르게 처리할 수 없었습니다. 테스트를 해보니, 고작 500개의 룩업을 처리하는데 약 33초가 걸립니다. 미리 테스트 결과를 보여드리면 아래와 같습니다. 첫번째로 테스트 된 함수가 <strong>TestLinearReverseDNSLookup</strong>이며, 그 다음으로는 고루틴을 활용하여 처리한 <strong>TestReverseDNSLookup</strong>가 테스트 되었습니다.</p>
+<pre><code>=== RUN   TestLinearReverseDNSLookup
+    TestLinearReverseDNSLookup: bot_specifier_test.go:123: Start Look up 500 addresses.
+    TestLinearReverseDNSLookup: bot_specifier_test.go:134: Looked up 61 addresses.
+--- PASS: TestLinearReverseDNSLookup (32.95s)
+=== RUN   TestReverseDNSLookup
+    TestReverseDNSLookup: bot_specifier_test.go:147: Start Look up 1000 addresses.
+    TestReverseDNSLookup: bot_specifier_test.go:149: Looked up 561 addresses.
+--- PASS: TestReverseDNSLookup (6.52s)
+</code></pre><p>사용한 방법은, 아래와 같이 Google DNS 서버를 통해 룩업하는 Resolver를 할당하여 선형 룩업을 진행하였습니다. (단순 반복문으로 처리한 거니까 자세한 코드는 생략합니다. 😇)</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#a6e22e">Resolver</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">net</span>.<span style="color:#a6e22e">Resolver</span>{
+	<span style="color:#a6e22e">PreferGo</span>: <span style="color:#66d9ef">true</span>,
+	<span style="color:#a6e22e">Dial</span>: <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">ctx</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Context</span>, <span style="color:#a6e22e">network</span>, <span style="color:#a6e22e">address</span> <span style="color:#66d9ef">string</span>) (<span style="color:#a6e22e">net</span>.<span style="color:#a6e22e">Conn</span>, <span style="color:#66d9ef">error</span>) {
+		<span style="color:#a6e22e">d</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">net</span>.<span style="color:#a6e22e">Dialer</span>{
+			<span style="color:#a6e22e">Timeout</span>: <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Duration</span>(<span style="color:#ae81ff">3</span>),
+		}
+		<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">d</span>.<span style="color:#a6e22e">DialContext</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#e6db74">&#34;udp&#34;</span>, <span style="color:#e6db74">&#34;8.8.8.8:53&#34;</span>)
+	},
+}
+</code></pre></div><h2 id="reverse-dns-lookup-with-goroutine-">Reverse DNS Lookup with Goroutine 😸</h2>
+<p>오늘 포스팅의 주인공이라고 할 수 있는 고루틴이 등장하였습니다. 아래와 같이 Reverse DNS Lookup을 고루틴으로 처리하였고 성능은 선형 룩업을 했을 때보다 최소 10배 이상은 빠른 것 같습니다. (하드웨어 사양에 따라 성능이 달라지겠지만요.)</p>
+<p>{% gist 4da4f1859c82e4632e5528d011a557bb %}</p>
+<p>위 코드에서 중점적으로 봐주셔야 할 부분은 <code>bs.Resolver.LookupAddr(ctx, ipv4)</code> 를 감싸고 있는 go func 입니다. 각 고루틴들이 룩업한 결과를 리스트에 추가하는 형태로 되어 있으며, 각각의 고루틴들이 임계영역을 서로 침범하지 않게끔 Mutex를 사용해서 처리해주는 것을 보실 수 있습니다.</p>
+<p>위 코드를 바탕으로 10만개 아이피에 대해 룩업을 실행한 결과는 아래와 같습니다. 처리한 시간이 1분이 채 안되는 걸 보실 수 있습니다.</p>
+<pre><code>=== RUN   TestSpecifyGoodBots
+    TestSpecifyGoodBots: bot_specifier_test.go:161: Start Look up 100000 addresses.
+    TestSpecifyGoodBots: bot_specifier_test.go:163: Looked up 17690 addresses.
+    TestSpecifyGoodBots: bot_specifier_test.go:165: There are 0 Good Bots in bs.DnsBook.
+--- PASS: TestSpecifyGoodBots (54.92s)
+PASS
+</code></pre><h2 id="more">More?</h2>
+<p>10만개 아이피에 대해 고루틴으로 Reverse DNS Lookup을 처리할 때의 고루틴 개수 변화 추이, 해당 프로그램에서 사용하는 CPU, Memory 변화량 등에 대해 모니터링을 해보고 싶습니다.</p>
+
+        </div>
+        
+
+    
+
+
+<div class="post-info">
+    
+        <div class="post-date">2020-08-20</div>
+    
+    <div class="post-taxonomies">
+        
+            
+    </div>
+</div>
+
+    </article>
+
+    
+        
+    <div class="pagination post-pagination">
+        <div class="left pagination-item ">
+            
+                <a href="/aeharvlee.github.io/posts/2020-12-09-pubkey-authentication/">Pubkey Authentication not working</a>
+            
+        </div>
+        <div class="right pagination-item ">
+            
+                <a href="/aeharvlee.github.io/posts/2020-08-11-go-concurrency-pattern/">Go Concurrecny Patterns in Go Chap4 Queueing</a>
+            
+        </div>
+    </div>
+
+    
+
+    
+        <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "disqus_KzKHRmqPgk" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    
+
+
+        </main>
+        
+            <footer class="common-footer">
+    
+    
+
+    <div class="common-footer-bottom">
+        
+        <div class="copyright">
+            <p>© Hyunwoo Lee, 2020<br>
+            Powered by <a target="_blank" rel="noopener noreferrer" href="https://gohugo.io/">Hugo</a>, theme <a target="_blank" rel="noopener noreferrer" href="https://github.com/mitrichius/hugo-theme-anubis">Anubis</a>.
+            </p>  
+        </div> 
+
+        
+
+    
+
+
+   
+    </div>
+</footer>
+
+        
+    </div>
+</body>
+</html>
