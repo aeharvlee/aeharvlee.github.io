@@ -36,7 +36,7 @@
 &lt;h2 id=&#34;2-check-local-and-remote-server-both&#34;&gt;2. Check local and remote server both&lt;/h2&gt;
 &lt;p&gt;1번에서 매칭되는 공개 키를 잘 추가해주셨다면, 이제 디버깅할 시간입니다. 접속을 시도하는 로컬의 로그와 동시에 타겟 서버인 리모트 서버의 로그를 살펴보면 됩니다.&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;color:#75715e&#34;&gt;# 클라이언트 측에서 서버에 연결할 때의 과정을 상세히 출력해보도록 합니다.&lt;/span&gt;
-$ ssh -i ~/.ssh/id_rsa_macbook_pro15 user@123.456.789.123 -p &lt;span style=&#34;color:#ae81ff&#34;&gt;7788&lt;/span&gt; -v
+$ ssh -i ~/.ssh/id_rsa_macbook_pro15 user@123.456.789.123 -p &lt;span style=&#34;color:#ae81ff&#34;&gt;28888&lt;/span&gt; -v
 
 &lt;span style=&#34;color:#75715e&#34;&gt;# 리모트 서버측의 로그를 확인하도록 합니다.&lt;/span&gt;
 sudo tail -f /var/log/secure

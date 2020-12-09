@@ -43,7 +43,7 @@
 
 
     
-        <link rel="stylesheet" href="aeharvlee.github.io/css/my.css?rnd=1607522276">
+        <link rel="stylesheet" href="aeharvlee.github.io/css/my.css?rnd=1607525735">
     
 
 
@@ -56,7 +56,7 @@
 
 
     
-        <script src="aeharvlee.github.io/js/main.js?rnd=1607522276" type="text/javascript" charset="utf-8"></script>
+        <script src="aeharvlee.github.io/js/main.js?rnd=1607525735" type="text/javascript" charset="utf-8"></script>
     
 
 
@@ -137,7 +137,7 @@
 <h2 id="2-check-local-and-remote-server-both">2. Check local and remote server both</h2>
 <p>1번에서 매칭되는 공개 키를 잘 추가해주셨다면, 이제 디버깅할 시간입니다. 접속을 시도하는 로컬의 로그와 동시에 타겟 서버인 리모트 서버의 로그를 살펴보면 됩니다.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># 클라이언트 측에서 서버에 연결할 때의 과정을 상세히 출력해보도록 합니다.</span>
-$ ssh -i ~/.ssh/id_rsa_macbook_pro15 user@123.456.789.123 -p <span style="color:#ae81ff">7788</span> -v
+$ ssh -i ~/.ssh/id_rsa_macbook_pro15 user@123.456.789.123 -p <span style="color:#ae81ff">28888</span> -v
 
 <span style="color:#75715e"># 리모트 서버측의 로그를 확인하도록 합니다.</span>
 sudo tail -f /var/log/secure
