@@ -43,7 +43,7 @@
 
 
     
-        <link rel="stylesheet" href="aeharvlee.github.io/css/my.css?rnd=1607573338">
+        <link rel="stylesheet" href="aeharvlee.github.io/css/my.css?rnd=1612106268">
     
 
 
@@ -56,7 +56,7 @@
 
 
     
-        <script src="aeharvlee.github.io/js/main.js?rnd=1607573338" type="text/javascript" charset="utf-8"></script>
+        <script src="aeharvlee.github.io/js/main.js?rnd=1612106268" type="text/javascript" charset="utf-8"></script>
     
 
 
@@ -117,6 +117,16 @@ Good Bot인지를 검증하는 작업은 생각보다 심플한데요, 해당 �
         <header class="post-header">
             <h1 class="post-title">Reverse DNS Lookup Concurrently with Go</h1>
         </header>
+        <aside>
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#verify-good-bot">Verify Good Bot</a></li>
+    <li><a href="#linear-reverse-dns-lookup--">Linear Reverse DNS Lookup  😫</a></li>
+    <li><a href="#reverse-dns-lookup-with-goroutine-">Reverse DNS Lookup with Goroutine 😸</a></li>
+    <li><a href="#more">More?</a></li>
+  </ol>
+</nav>
+        </aside>
         <div class="content">
             <p>Go Routine을 활용하여 대량의 아이피에 대해 Reverse DNS Lookup을 효과적으로 처리한 사례를 공유드립니다.</p>
 <p><img src="/images/2020-08-20-even-faster-reverse-dns-lookup-using-goroutines/0.png" alt="gopher"></p>
@@ -161,6 +171,7 @@ PASS
 <p>10만개 아이피에 대해 고루틴으로 Reverse DNS Lookup을 처리할 때의 고루틴 개수 변화 추이, 해당 프로그램에서 사용하는 CPU, Memory 변화량 등에 대해 모니터링을 해보고 싶습니다.</p>
 
         </div>
+
         
 
     
@@ -228,7 +239,7 @@ PASS
     <div class="common-footer-bottom">
         
         <div class="copyright">
-            <p>© Hyunwoo Lee, 2020<br>
+            <p>© Hyunwoo Lee, 2021<br>
             Powered by <a target="_blank" rel="noopener noreferrer" href="https://gohugo.io/">Hugo</a>, theme <a target="_blank" rel="noopener noreferrer" href="https://github.com/mitrichius/hugo-theme-anubis">Anubis</a>.
             </p>  
         </div> 

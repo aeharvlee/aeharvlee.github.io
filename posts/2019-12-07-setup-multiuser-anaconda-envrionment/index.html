@@ -43,7 +43,7 @@
 
 
     
-        <link rel="stylesheet" href="aeharvlee.github.io/css/my.css?rnd=1607573338">
+        <link rel="stylesheet" href="aeharvlee.github.io/css/my.css?rnd=1612106268">
     
 
 
@@ -56,7 +56,7 @@
 
 
     
-        <script src="aeharvlee.github.io/js/main.js?rnd=1607573338" type="text/javascript" charset="utf-8"></script>
+        <script src="aeharvlee.github.io/js/main.js?rnd=1612106268" type="text/javascript" charset="utf-8"></script>
     
 
 
@@ -115,6 +115,27 @@
         <header class="post-header">
             <h1 class="post-title">하나의 서버에서 여러 유저가 협업 가능한 무료 파이썬 개발 환경 구축하기 (Anaconda &#43; JupyterNotebook)</h1>
         </header>
+        <aside>
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#1-architecture-overview">1. Architecture Overview</a></li>
+    <li><a href="#2-install-anacodna">2. Install Anacodna</a>
+      <ol>
+        <li><a href="#21-anaconda유저에게-관리-권한-부여">2.1 anaconda유저에게 관리 권한 부여</a></li>
+        <li><a href="#22-nb_conda--ipykernel">2.2 nb_conda + ipykernel</a></li>
+      </ol>
+    </li>
+    <li><a href="#3-setup-jupyter-notebook-for-each-user">3. Setup Jupyter Notebook For Each User</a>
+      <ol>
+        <li><a href="#31-create-config--generate-password-hash">3.1 Create config &amp; generate password hash</a></li>
+        <li><a href="#32-https-통신을-위한-설정">3.2 HTTPS 통신을 위한 설정</a></li>
+        <li><a href="#33-통신-포트-설정">3.3 통신 포트 설정</a></li>
+      </ol>
+    </li>
+    <li><a href="#4-run-jupyter-notebook">4. Run Jupyter Notebook</a></li>
+  </ol>
+</nav>
+        </aside>
         <div class="content">
             <p><strong>서버 정보:</strong></p>
 <ul>
@@ -259,6 +280,7 @@ c.NotebookApp.port <span style="color:#f92672">=</span> <span style="color:#ae81
 <p><img src="/images/2019-12-07-setup-multiuser-anaconda-envrionment/1.png" alt="juptyter_notebook"></p>
 
         </div>
+
         
 
     
@@ -324,7 +346,7 @@ c.NotebookApp.port <span style="color:#f92672">=</span> <span style="color:#ae81
     <div class="common-footer-bottom">
         
         <div class="copyright">
-            <p>© Hyunwoo Lee, 2020<br>
+            <p>© Hyunwoo Lee, 2021<br>
             Powered by <a target="_blank" rel="noopener noreferrer" href="https://gohugo.io/">Hugo</a>, theme <a target="_blank" rel="noopener noreferrer" href="https://github.com/mitrichius/hugo-theme-anubis">Anubis</a>.
             </p>  
         </div> 
