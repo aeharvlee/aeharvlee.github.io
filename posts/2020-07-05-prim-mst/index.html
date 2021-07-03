@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+
+
+<html lang="ko-kr" data-theme="">
+<head>
+    
+        
+<meta charset="utf-8">
+<meta name="HandheldFriendly" content="True">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer-when-downgrade">
+
+<title>Prim&#39;s Minimum Spanning Tree(MST) Basics - Road to Architect</title>
+<meta name="description" content="">
+
+<link rel="icon" type="image/x-icon" href="aeharvlee.github.io/favicon.ico">
+<link rel="apple-touch-icon-precomposed" href="aeharvlee.github.io/favicon.png">
+
+
+
+    
+
+
+
+
+
+    
+    
+    
+
+    
+        <link rel="stylesheet" href="/aeharvlee.github.io/css/style.6155b6d8eded05b985178f56a637943b3e7fcfccc913d9c656bbebce7c91cc6b.css" integrity="sha256-YVW22O3tBbmFF49WpjeUOz5/z8zJE9nGVrvrznyRzGs=">
+    
+
+
+
+
+
+    
+
+
+
+
+
+    
+        <link rel="stylesheet" href="aeharvlee.github.io/css/my.css?rnd=1625297564">
+    
+
+
+
+
+    
+
+
+
+
+
+    
+        <script src="aeharvlee.github.io/js/main.js?rnd=1625297564" type="text/javascript" charset="utf-8"></script>
+    
+
+
+<meta property="og:title" content="Prim&#39;s Minimum Spanning Tree(MST) Basics" />
+<meta property="og:description" content="Prim의 MST 알고리즘의 기본개념에 대해 공유드립니다. (현재 이전에 작성했던 글을 이전하는 과정 중에 있습니다. 본 글은 과거에 제가 작성했던 Prim의 MST 알고리즘 글을 재구성하였습니다.
+Prim&rsquo;s Minimum Spanning Tree(MST) 최소 비용 신장 트리(MST)는 신장 트리 중에서 사용된 간선들의 합이 최소인 신장트리(Spanning Tree)를 말합니다. 신장트리는 모든 정점을 포함하고 정점 간 서로 연결되면서 사이클이 존재하지 않는 그래프입니다.
+위의 그림이 신장 트리를 아주 잘 표현해주고 있는데요, 그래프 G에서 앞서 언급한 조건을 만족하는 신장트리는 총 3개가 존재합니다." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="aeharvlee.github.io/posts/2020-07-05-prim-mst/" /><meta property="og:image" content="aeharvlee.github.io/images/og-featured.png"/><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2020-07-05T00:00:00&#43;00:00" />
+<meta property="article:modified_time" content="2020-07-05T00:00:00&#43;00:00" />
+
+
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="aeharvlee.github.io/images/og-featured.png"/>
+
+<meta name="twitter:title" content="Prim&#39;s Minimum Spanning Tree(MST) Basics"/>
+<meta name="twitter:description" content="Prim의 MST 알고리즘의 기본개념에 대해 공유드립니다. (현재 이전에 작성했던 글을 이전하는 과정 중에 있습니다. 본 글은 과거에 제가 작성했던 Prim의 MST 알고리즘 글을 재구성하였습니다.
+Prim&rsquo;s Minimum Spanning Tree(MST) 최소 비용 신장 트리(MST)는 신장 트리 중에서 사용된 간선들의 합이 최소인 신장트리(Spanning Tree)를 말합니다. 신장트리는 모든 정점을 포함하고 정점 간 서로 연결되면서 사이클이 존재하지 않는 그래프입니다.
+위의 그림이 신장 트리를 아주 잘 표현해주고 있는데요, 그래프 G에서 앞서 언급한 조건을 만족하는 신장트리는 총 3개가 존재합니다."/>
+
+
+
+
+
+
+
+
+
+    
+</head>
+<body>
+    <a class="skip-main" href="#main">Skip to main content</a>
+    <div class="container">
+        <header class="common-header"> 
+            
+                <h1 class="site-title">
+    <a href="/aeharvlee.github.io">Road to Architect</a>
+</h1>
+
+    <nav>
+        
+        
+        <a class="" href="aeharvlee.github.io/aeharvlee.github.io/posts/" title="Archive">Archive</a>
+        
+    </nav>
+
+
+            
+        </header>
+        <main id="main" tabindex="-1"> 
+            
+    
+    
+    <article class="post">
+        <header class="post-header">
+            <h1 class="post-title draft">Prim&#39;s Minimum Spanning Tree(MST) Basics</h1>
+        </header>
+        <aside>
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#prims-minimum-spanning-treemst">Prim&rsquo;s Minimum Spanning Tree(MST)</a></li>
+  </ol>
+</nav>
+        </aside>
+        <div class="content">
+            <p>Prim의  MST 알고리즘의 기본개념에 대해 공유드립니다. (현재 이전에 작성했던 글을 이전하는 과정 중에 있습니다. 본 글은 과거에 제가 작성했던 <a href="https://mattlee.tistory.com/46?category=683544">Prim의 MST 알고리즘</a> 글을 재구성하였습니다.</p>
+<h2 id="prims-minimum-spanning-treemst">Prim&rsquo;s Minimum Spanning Tree(MST)</h2>
+<p>최소 비용 신장 트리(MST)는 신장 트리 중에서 사용된 간선들의 합이 최소인 신장트리(Spanning Tree)를 말합니다. 신장트리는 모든 정점을 포함하고 정점 간 서로 연결되면서 사이클이 존재하지 않는 그래프입니다.</p>
+<p><img src="https://www.tutorialspoint.com/data_structures_algorithms/images/spanning_trees.jpg" alt="spanningt-tree"></p>
+<p>위의 그림이 신장 트리를 아주 잘 표현해주고 있는데요, 그래프 G에서 앞서 언급한 조건을 만족하는 신장트리는 총 3개가 존재합니다.</p>
+<p>오늘 다루어볼 내용인 **최소 비용 신장 트리(MST)**는 신장 트리 중에서 <strong>사용된 간선들의 가중치 합이 최소인 신장트리</strong>를 뜻합니다. 최소 비용 신장 트리는 도로 건설이나 전기 회로설계, 통신 인프라 구축 등의 문제를 효율적으로 처리하는 데 사용될 수 있습니다. 🙂</p>
+<p><strong>Prim의 MST 알고리즘</strong>은 시작 정점에서부터 출발하여 신장 트리 집합을 단계적으로 확장해나가는 방법을 사용합니다. 시작 단계에서는 시작 정점만이 신장 트리 집합에 포함된다.</p>
+
+        </div>
+
+        
+
+    
+
+
+<div class="post-info">
+    
+        <div class="post-date">2020-07-05</div>
+    
+    <div class="post-taxonomies">
+        
+            
+    </div>
+</div>
+
+    </article>
+
+    
+        
+    <div class="pagination post-pagination">
+        <div class="left pagination-item ">
+            
+                <a href="/aeharvlee.github.io/posts/2020-07-22-angelhack-seoul-2020/">Angel Hack Seoul 2020 Online Review</a>
+            
+        </div>
+        <div class="right pagination-item ">
+            
+                <a href="/aeharvlee.github.io/posts/2020-06-28-get-into-coap-packet/">Let&#39;s get into CoAP packets</a>
+            
+        </div>
+    </div>
+
+    
+
+    
+        <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "aeharv" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    
+
+
+        </main>
+        
+            <footer class="common-footer">
+    
+    
+
+    <div class="common-footer-bottom">
+        
+        <div class="copyright">
+            <p>© Hyunwoo Lee, 2021<br>
+            Powered by <a target="_blank" rel="noopener noreferrer" href="https://gohugo.io/">Hugo</a>, theme <a target="_blank" rel="noopener noreferrer" href="https://github.com/mitrichius/hugo-theme-anubis">Anubis</a>.
+            </p>  
+        </div> 
+
+        
+
+    
+
+
+   
+    </div>
+</footer>
+
+        
+    </div>
+</body>
+</html>
