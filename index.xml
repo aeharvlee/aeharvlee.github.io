@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Road to architect</title>
+    <link>https://aeharvlee.github.io/</link>
+    <description>Recent content on Road to architect</description>
+    <image>
+      <url>https://aeharvlee.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>https://aeharvlee.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Wed, 09 Dec 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://aeharvlee.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Pubkey Authentication not working</title>
+      <link>https://aeharvlee.github.io/posts/2020-12-09-pubkey-authentication/</link>
+      <pubDate>Wed, 09 Dec 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://aeharvlee.github.io/posts/2020-12-09-pubkey-authentication/</guid>
+      <description>리모트 서버와 패스워드 입력 없이 비대칭 키로 원격 접속을 하고 싶은데, 키를 이용한 접속이 되지 않고, 프롬프트에서 패스워드를 요구하는 경우 어떻게 대처하면 좋을지를 알아봅시다.
+저자의 로컬 클라이언트 운영체제는 MacOS Bigsur, 리모트 서버의 경우 CentOS 7으로 되어 있다는 것을 먼저 알려드립니다.
+퍼블릭 키를 원격 서버에 잘 두었고, 로컬에 짝이 맞는 개인 키도 있는 상태에서 키를 지정하여 통신하려 했음에도 실패한 경험이 있으시다면 다음과 같은 것들을 점검해보시기 바랍니다.
+1. Check remote server 원격 서버의 /etc/ssh/ssh/sshd_config 파일에 PubkeyAuthentication yes 항목이 있는지 확인합니다.</description>
+    </item>
+    
+    <item>
+      <title>Reverse DNS Lookup Concurrently with Go</title>
+      <link>https://aeharvlee.github.io/posts/2020-08-20-even-faster-reverse-dns-lookup-using-goroutines/</link>
+      <pubDate>Thu, 20 Aug 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://aeharvlee.github.io/posts/2020-08-20-even-faster-reverse-dns-lookup-using-goroutines/</guid>
+      <description>Go Routine을 활용하여 대량의 아이피에 대해 Reverse DNS Lookup을 효과적으로 처리한 사례를 공유드립니다.
+Image Source: https://en.wikipedia.org/wiki/Gopher
+Verify Good Bot 자세한 요구사항을 말씀드리긴 어렵지만, 보유하고 있는 대량의 아이피 주소에 대해 각 아이피가 Good Bot(구글 봇, 애플 봇, 마이크로소프트 봇 등)인지를 확인하는 작업이 필요했습니다. 그것도 빠르게..! :horse_racing: 처리해야하는 상황입니다.
+Good Bot인지를 검증하는 작업은 생각보다 심플한데요, 해당 아이피 주소에 대해 reverse DNS lookup을 해주면 됩니다. 일반적으로 잘 알려져 있는 봇들은 DNS에 자신의 정보를 등록해두기 때문입니다.</description>
+    </item>
+    
+    <item>
+      <title>Go Concurrecny Patterns in Go Chap4 Queueing</title>
+      <link>https://aeharvlee.github.io/posts/2020-08-11-go-concurrency-pattern/</link>
+      <pubDate>Tue, 11 Aug 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://aeharvlee.github.io/posts/2020-08-11-go-concurrency-pattern/</guid>
+      <description>golang 온라인 스터디 때 제가 준비한 파트에 대한 자료를 공유드립니다.
+Queuing Sometimes it&amp;rsquo;s useful to begin accepting work for your pipeline even though the pipeline is not yet ready for more. This process is called queuing.
+All this means is that once your stage has completed some work, it stores it in a temporary location in memory so that other stages can retrive it later, and your stage doesn&amp;rsquo;t need to hold a reference to it.</description>
+    </item>
+    
+    <item>
+      <title>Angel Hack Seoul 2020 Online Review</title>
+      <link>https://aeharvlee.github.io/posts/2020-07-22-angelhack-seoul-2020/</link>
+      <pubDate>Wed, 22 Jul 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://aeharvlee.github.io/posts/2020-07-22-angelhack-seoul-2020/</guid>
+      <description>온라인으로 개최된 2020 엔젤해커톤 참여 후기 공유드립니다.
+엔젤 해커톤 리뷰 1. 제출물 저희 Specialty팀이 일주일 동안 정말 고생한 노력의 과실들을 공유드립니다. :kissing_smiling_eyes: 보통은 이런 후기 글 마지막에 나오는 게 일반적이지만, 이 글을 보시는 분들이 가장 궁금해 할만한 내용이라 생각하여 선공유 드립니다. :laughing:
+Github: angelhack-seoul-2020-specialty
+키노트 영상: 커피박 업사이클링 플랫폼 2. 간략 소개 기간: 2020-07-13 월요일부터 2020-07-19 일요일까지
+주제: 참여한 5개의 스폰서(커먼컴퓨터, 패스트캠퍼스, 테이블매니저, 우아한형제들, 코드스테이츠)가 제안한 도전과제들 중 선택
+커먼컴퓨터: Ainize(오픈소스 프로젝트 배포 솔루션)를 활용한 코로나 시대를 헤쳐나갈 수 있는 모든 분야의 솔루션 패스트캠퍼스: 코로나와 같은 재난 격리, 도서 산간 거주 등 불가피한 원격 상황에서도 학습 의지 부여와 완주율을 높이는 교육/학습 솔루션 테이블매니저: 코로나로 인해 어려움을 겪는 소상공인을 돕는 솔루션을 통한 안정적이고 지속 가능한 도시 :white_check_mark: 우아한형제들: 지구를 위한 책임가 있는 소비와 생산을 위한 솔루션 (네, 그렇습니다.</description>
+    </item>
+    
+    <item>
+      <title>Let&#39;s get into CoAP packets</title>
+      <link>https://aeharvlee.github.io/posts/2020-06-28-get-into-coap-packet/</link>
+      <pubDate>Sun, 28 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://aeharvlee.github.io/posts/2020-06-28-get-into-coap-packet/</guid>
+      <description>프로그램이 CoAP 프로토콜을 정말 지원하는지를 패킷을 통해 직접 확인할 수 있는 방법을 공유드립니다.
+CoAP(The Constrained Application Protocol) 최근에 기기간 통신에 대해 리서치를 하던 중 CoAP 프로토콜에 대해 알게 되었습니다. CoAP는 성능이 매우 작은 기기들 사이에 통신을 주고 받을 때, 아주 적은 페이로드로 빠르고 정확하게 통신을 하기 위한 프로토콜입니다. (자세한 스펙은 해당 링크를 참조해주세요 :slightly_smiling_face:)
+해당 프로토콜이 어떻게 동작하는지는 스펙 문서를 통해 확인할 수 있었는데요, 실제로 동작을 시켜보면서 살펴보려면 해당 프로토콜의 구현체가 필요하기 마련입니다.</description>
+    </item>
+    
+    <item>
+      <title>IBM Call for Code 2020 Korea Hackathon Review</title>
+      <link>https://aeharvlee.github.io/posts/2020-06-13-ibm-callforcode-2020/</link>
+      <pubDate>Sat, 13 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://aeharvlee.github.io/posts/2020-06-13-ibm-callforcode-2020/</guid>
+      <description>IBM Call for Code Korea 2020 후기 공유드립니다. (Top 3에 선정되었습니다. :tada: Thanks IBM! )
+IBM Call for Code Korea 2020 콜포코드 2020 해커톤은 **&amp;ldquo;코로나와 기후변화 문제를 IT를 활용하여 효과적으로 해결할 수 있을지, 할 수 있다면 어떻게 할 수 있을지&amp;rdquo;**에 대한 아이디어를 공유하고 실제 프로토타입까지 개발해서 서로 발표하고 공유하는 자리였습니다.
+총 50개 팀이 참여했으며 온라인으로 진행하였습니다. 즉 팀마다 알아서 장소를 구하고 해당 장소에서 같이 2일 동안 해커톤을 진행하는 형식이었는데요, 행사 공식 일정(주최 측의 안내사항 공지, 팀별 발표, 멘토 피드백 등)은 모두 Cisco Webex Meetings를 사용하여 진행하였습니다.</description>
+    </item>
+    
+    <item>
+      <title>Golang Korea Online Meetup Review</title>
+      <link>https://aeharvlee.github.io/posts/2020-05-28-golang-korea-meetup/</link>
+      <pubDate>Thu, 28 May 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://aeharvlee.github.io/posts/2020-05-28-golang-korea-meetup/</guid>
+      <description>고랭 코리아 5월 온라인 밋업 후기 공유드립니다. 저에게 발표할 수 있는 기회를 주신 Golang Korea 정말 감사합니다. 🙌
+Golang Korea Online Meetup 온라인 발표 영상링크: Go와 Python의 이점을 둘 다 누릴 수 있는 마이크로 서비스 아키텍처
+올해 2월부터 5월까지 열심히 개발했던 Threat Intelligence API 서비스 개발 경험을 정리해서 고랭 코리아 온라인 밋업에서 발표를 했습니다. (위 링크를 클릭하시면 발표 내용을 만나보실 수 있습니다.)
+평소 Go언어에 정말 관심이 많고 꼭 회사 프로젝트에서도 사용해보고 싶었습니다.</description>
+    </item>
+    
+    <item>
+      <title>How to renew entire table&#39;s rows safely?</title>
+      <link>https://aeharvlee.github.io/posts/2020-05-19-renew-table-safely/</link>
+      <pubDate>Tue, 19 May 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://aeharvlee.github.io/posts/2020-05-19-renew-table-safely/</guid>
+      <description>안전하게 테이블의 내용을 갱신하는 방법에 대해 공유드립니다.
+1. Introduction 이름은 동일하지만 매일 혹은 주기적으로 완전히 새로운 내용으로 갱신되어야 하는 MySQL 테이블이 있으신가요?
+혹시 TRUNCATE TABLE important_table 를 한 뒤에 새로운 데이터를 삽입해주는 프로세스를 진행하고 있진 않으신가요?
+만약 그렇다면 TRUNCATE 이후 에러가 발생하면 사실상 빈 테이블이 되는 것이고 서비스 장애상태가 발생하게 되는데, 어떻게 하면 안전하게 테이블을 새로운 데이터로 깔끔하게 교체할 수 있을까요?
+위와 같은 고민을 하고 계시다면 이 글이 도움이 되실겁니다! :raised_hands:</description>
+    </item>
+    
+    <item>
+      <title>Go RESTful API(gRPC Client) &#43; Python gRPC server</title>
+      <link>https://aeharvlee.github.io/posts/2020-04-21-go-restful-api-with-python-grpc-server/</link>
+      <pubDate>Tue, 21 Apr 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://aeharvlee.github.io/posts/2020-04-21-go-restful-api-with-python-grpc-server/</guid>
+      <description>Go와 Python을 활용한 마이크로 서비스 아키텍처 활용 사례를 공유드립니다.
+1. Introduction 얼마 전 런칭한 클라우드브릭의 Threat Intelligence API는 Go RESTful API (gRPC Client)와 Python gRPC Server (with pandas)로 만들어졌습니다.
+본 글에서는 왜 Go RESTful API와 Python gRPC Server의 조합으로 서비스를 만들었는지를 공유하고자 합니다. :eyes: 비슷한 고민을 하시는 분들께 도움이 되었으면 좋겠습니다. :pray:
+2. Design 2.1. Requirements Threat Intelligence API를 개발할 때, 아래와 같은 요구사항이 있었습니다.
+가볍고 빨라야 한다. 서버의 리소스를 적게 사용하면서 사용자들의 요청을 빠르게 처리해야 합니다.</description>
+    </item>
+    
+    <item>
+      <title>Huge Improvement of performance in pandas</title>
+      <link>https://aeharvlee.github.io/posts/2020-04-01-huge-improvement-of-performance-in-pandas/</link>
+      <pubDate>Wed, 01 Apr 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://aeharvlee.github.io/posts/2020-04-01-huge-improvement-of-performance-in-pandas/</guid>
+      <description>1. Introduction pandas는 파이썬에서 사용되는 데이터 분석 라이브러리입니다. 데이터를 처리하는데 매우 빠르고 능합니다. :car:
+그러나 결국 pandas도 하나의 라이브러리, 도구이기 때문에 잘못 사용하는 경우 프로그램 성능이 급격하게 안좋아질 수 있습니다.
+본 글에서는 제가 클라우드브릭에서 Malicious IPv4 서비스를 개발 중에 겪었던 실제 사례를 통해 어떻게 하면 성능 저하가 심해지는지, 그리고 이를 어떻게 극복했는지를 공유드리고자 합니다. :muscle:
+2. Body 2.1. 상황 설명 특정 아이피가 얼마나 위험한지에 대한 정보를 담고 있는 ildf(=intrusion log DataFrame)라는 DataFrame이 있습니다.</description>
+    </item>
+    
+    <item>
+      <title>AWS Certified Solutions Architect - Associate 취득 후기 공유</title>
+      <link>https://aeharvlee.github.io/posts/2020-02-26-aws-saa-c01/</link>
+      <pubDate>Wed, 26 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://aeharvlee.github.io/posts/2020-02-26-aws-saa-c01/</guid>
+      <description>재직 중인 회사에서 AWS 파트너 자격 유지를 위해 SAA-C01 자격증이 필요해졌고, 2주 남짓 남은 상황에서 시험을 준비하게 되었습니다.
+시험은 영문(English)으로 응시했습니다.
+Study method and preparation period 공부하는 데 소요된 절대적인 시간: 약 30시간
+필자가 공부하는 데 걸린 기간: 2주 간에 걸쳐 조금씩 자주 공부
+공부 방법
+기출 문제 풀이 오답 노트 작성 잘 이해가 가지 않는 부분에 대해서는 AWS 공식 문서 참고 Study Material Practice Questions 2019(800+) - AWS Ceritified Solutions Architect Associate (SAA-C01): Guaranteed Pass with more than 825 latest questions &amp;hellip;</description>
+    </item>
+    
+    <item>
+      <title>Trouble shoot pandas SettingWithCopyWarning</title>
+      <link>https://aeharvlee.github.io/posts/2020-01-31-trouble-shoot-pandas-setting-with-copy-warning/</link>
+      <pubDate>Fri, 31 Jan 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://aeharvlee.github.io/posts/2020-01-31-trouble-shoot-pandas-setting-with-copy-warning/</guid>
+      <description>How to solve SettingWithCopyWarning 회사에서 사용 중인 파이썬 스크립트를 분석할 일이 생겨 분석하던 중 다음과 같은 경고문을 만났습니다.
+도대체 왜 이런 문구가 떴는지를 알기 위해 이전에 실행되었던 셀을 함께 살펴보았습니다.
+local_wmp_df 라는 DataFrame에 특정 조건을 만족하는 로우들만 추출하기 위해 위와 같은 구문을 사용했었습니다.
+위 구문의 문제점은 원본 DataFrame을 그대로 사용하고 싶은 건지, 아니면 복사본을 생성하여 다루고 싶은지가 불명확 했고 그로 인해 경고 메시지가 나온 것이었어요. :chicken:
+DataFrame을 다룰 때는 copy를 다루는 것인지 아니면 원본을 다루는 것인지를 항상 명시적으로 기입해줘야 한다는 걸 알았습니다.</description>
+    </item>
+    
+    <item>
+      <title>Improve Perofrmance of MySQL query in 3 minutes</title>
+      <link>https://aeharvlee.github.io/posts/2019-12-22-improve-mysql-performance/</link>
+      <pubDate>Sun, 22 Dec 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://aeharvlee.github.io/posts/2019-12-22-improve-mysql-performance/</guid>
+      <description>대상 독자: MySQL 디비 성능을 개선하고 싶은데 아직 관련 경험이 전무한 개발자 혹은 엔지니어
+실습을 진행하는 필자의 환경은 다음과 같습니다:
+OS: MacOS 10.15.2 MySQL: Ver 8.0.18 MySQL Workbench OS 관계 없이 MySQL과 Workbench만 있으면 됩니다. Workbench가 아닌 다른 툴을 사용해도 좋습니다.
+1. 개요 5만 개의 데이터를 다루는 연산을 수행합니다. INSERT, SELECT에 대해 다룰 것이며 어떻게 성능을 올릴 수 있을지 고민하면서 직접 실습을 진행해보도록 합시다.
+1.1 MySQL Workbench 설정 Preference &amp;gt; MySQL Session</description>
+    </item>
+    
+    <item>
+      <title>2019 Blockchain IDEA Thon Review</title>
+      <link>https://aeharvlee.github.io/posts/2019-12-16-blockchain-ideathon-review/</link>
+      <pubDate>Mon, 16 Dec 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://aeharvlee.github.io/posts/2019-12-16-blockchain-ideathon-review/</guid>
+      <description>본 포스팅은 수필 형식의 글입니다. 2019년에 있었던 블록체인 아이디어톤에 대한 리뷰 뿐만 아니라 당시를 회상하며 해커톤을 시작한 계기는 무엇이었는지, 팀은 어떻게 결성했는지 등 개인사 관련된 내용이 많이 등장합니다. 글 작성 시점은 2021년이지만, 컨텐츠의 메타 데이터에 기재되는 date는 2019 년으로 하는 것이 전체 글 히스토리 관리에 더 도움이 된다 판단하여 2019 로 기재하였습니다.
+Team building Klaytn Developer Meetup 2019년 여름 즈음 Ground X에서 개발자들을 대상으로 역삼역 WeWork에서 주최했던 Klaytn Developer Meetup이 있었다.</description>
+    </item>
+    
+    <item>
+      <title>Let&#39;s Encrypt: A Free, Automated, and Open Cerificate Authority by Josh Aas</title>
+      <link>https://aeharvlee.github.io/posts/2019-12-07-lets-encrypt-speech/</link>
+      <pubDate>Sat, 07 Dec 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://aeharvlee.github.io/posts/2019-12-07-lets-encrypt-speech/</guid>
+      <description>SSL관련 자료를 찾다가 우연히 유튜브에서 Let&amp;rsquo;s Encrypt: A Free, Automated, and Open Cerificate Authority by Josh Aas 영상을 보게 되었습니다. 영상을 보고 난 후 저는 이 영상이 웹 보안에 관심 있는 사람에게 도움이 될 것이라 생각했고, 해당 영상을 다른 분들이 보실 때 이해를 돕고자 이렇게 포스팅을 작성하게 됐습니다.
+영상에 사용된 원문의 해석과 보충 설명이 필요한 부분은 주석을 함께 덧붙여 내용이 잘 전달 될 수 있게끔 노력 했습니다만, 모든 내용을 번역한 것은 아니며 발표 슬라이드에 있는 텍스트 위주로 번역한 것임을 알려드립니다.</description>
+    </item>
+    
+    <item>
+      <title>하나의 서버에서 여러 유저가 협업 가능한 무료 파이썬 개발 환경 구축하기 (Anaconda &#43; JupyterNotebook)</title>
+      <link>https://aeharvlee.github.io/posts/2019-12-07-setup-multiuser-anaconda-envrionment/</link>
+      <pubDate>Sat, 07 Dec 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://aeharvlee.github.io/posts/2019-12-07-setup-multiuser-anaconda-envrionment/</guid>
+      <description>서버 정보:
+OS: CentOS Linux release 7.6.1810 Anaconda: 4.7.11 설치된 경로: /opt/anaconda3 Account 서버 내에 root를 함한 유저가 총 5명이 있다고 가정합니다. 표기 정보: &amp;lt;user&amp;gt;:&amp;lt;group&amp;gt; root anaconda:anaconda jihye:pydev swjung:pydev hwlee:pydev 대상 독자: 하나의 서버에 여러 명의 동료들과 협업할 수 있는 파이썬 개발환경 구축이 필요한 독자.
+예시: 파이썬을 개발하는 모임 혹은 단체에서 클라우드 서비스에서 서버를 하나 구입하고(예를 들면 AWS의 EC2 instance), 그 서버로 모임 내의 모든 유저가 자유롭게 개발하고 공유할 수 있는 환경 구축을 원할 때 사용할 수 있는 환경을 만들고 싶을 때 본 포스팅을 참고하시면 도움이 될겁니다.</description>
+    </item>
+    
+  </channel>
+</rss>
