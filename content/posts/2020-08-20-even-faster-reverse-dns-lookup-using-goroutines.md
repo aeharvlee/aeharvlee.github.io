@@ -1,13 +1,10 @@
 ---
 title: "Reverse DNS Lookup Concurrently with Go"
 date: 2020-08-20
+tags: ["go"]
 ---
 
 Go Routine을 활용하여 대량의 아이피에 대해 Reverse DNS Lookup을 효과적으로 처리한 사례를 공유드립니다.
-
-![gopher](/images/2020-08-20-even-faster-reverse-dns-lookup-using-goroutines/0.png)
-
-Image Source: https://en.wikipedia.org/wiki/Gopher
 
 ## Verify Good Bot
 
