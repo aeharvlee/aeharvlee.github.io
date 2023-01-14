@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>go on Road to architect</title>
+    <link>https://aeharvlee.github.io/tags/go/</link>
+    <description>Recent content in go on Road to architect</description>
+    <image>
+      <url>https://aeharvlee.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>https://aeharvlee.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Thu, 20 Aug 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://aeharvlee.github.io/tags/go/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Reverse DNS Lookup Concurrently with Go</title>
+      <link>https://aeharvlee.github.io/posts/2020-08-20-even-faster-reverse-dns-lookup-using-goroutines/</link>
+      <pubDate>Thu, 20 Aug 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://aeharvlee.github.io/posts/2020-08-20-even-faster-reverse-dns-lookup-using-goroutines/</guid>
+      <description>Go Routine을 활용하여 대량의 아이피에 대해 Reverse DNS Lookup을 효과적으로 처리한 사례를 공유드립니다.
+Verify Good Bot 자세한 요구사항을 말씀드리긴 어렵지만, 보유하고 있는 대량의 아이피 주소에 대해 각 아이피가 Good Bot(구글 봇, 애플 봇, 마이크로소프트 봇 등)인지를 확인하는 작업이 필요했습니다. 그것도 빠르게..! :horse_racing: 처리해야하는 상황입니다.
+Good Bot인지를 검증하는 작업은 생각보다 심플한데요, 해당 아이피 주소에 대해 reverse DNS lookup을 해주면 됩니다. 일반적으로 잘 알려져 있는 봇들은 DNS에 자신의 정보를 등록해두기 때문입니다. 구글에서 이에 대해 작성한 Verifying Googlebot 가이드가 있어요!</description>
+    </item>
+    
+  </channel>
+</rss>

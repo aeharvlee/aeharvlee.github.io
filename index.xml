@@ -29,9 +29,8 @@
       
       <guid>https://aeharvlee.github.io/posts/2020-08-20-even-faster-reverse-dns-lookup-using-goroutines/</guid>
       <description>Go Routine을 활용하여 대량의 아이피에 대해 Reverse DNS Lookup을 효과적으로 처리한 사례를 공유드립니다.
-Image Source: https://en.wikipedia.org/wiki/Gopher
 Verify Good Bot 자세한 요구사항을 말씀드리긴 어렵지만, 보유하고 있는 대량의 아이피 주소에 대해 각 아이피가 Good Bot(구글 봇, 애플 봇, 마이크로소프트 봇 등)인지를 확인하는 작업이 필요했습니다. 그것도 빠르게..! :horse_racing: 처리해야하는 상황입니다.
-Good Bot인지를 검증하는 작업은 생각보다 심플한데요, 해당 아이피 주소에 대해 reverse DNS lookup을 해주면 됩니다. 일반적으로 잘 알려져 있는 봇들은 DNS에 자신의 정보를 등록해두기 때문입니다.</description>
+Good Bot인지를 검증하는 작업은 생각보다 심플한데요, 해당 아이피 주소에 대해 reverse DNS lookup을 해주면 됩니다. 일반적으로 잘 알려져 있는 봇들은 DNS에 자신의 정보를 등록해두기 때문입니다. 구글에서 이에 대해 작성한 Verifying Googlebot 가이드가 있어요!</description>
     </item>
     
     <item>
@@ -200,6 +199,16 @@ Team building Klaytn Developer Meetup 2019년 여름 즈음 Ground X에서 개�
       <description>서버 정보:
 OS: CentOS Linux release 7.6.1810 Anaconda: 4.7.11 설치된 경로: /opt/anaconda3 Account 서버 내에 root를 함한 유저가 총 5명이 있다고 가정합니다. 표기 정보: &amp;lt;user&amp;gt;:&amp;lt;group&amp;gt; root anaconda:anaconda jihye:pydev swjung:pydev hwlee:pydev 대상 독자: 하나의 서버에 여러 명의 동료들과 협업할 수 있는 파이썬 개발환경 구축이 필요한 독자.
 예시: 파이썬을 개발하는 모임 혹은 단체에서 클라우드 서비스에서 서버를 하나 구입하고(예를 들면 AWS의 EC2 instance), 그 서버로 모임 내의 모든 유저가 자유롭게 개발하고 공유할 수 있는 환경 구축을 원할 때 사용할 수 있는 환경을 만들고 싶을 때 본 포스팅을 참고하시면 도움이 될겁니다.</description>
+    </item>
+    
+    
+    <item>
+      <title>Tags</title>
+      <link>https://aeharvlee.github.io/tags/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://aeharvlee.github.io/tags/</guid>
+      <description>tags</description>
     </item>
     
   </channel>
